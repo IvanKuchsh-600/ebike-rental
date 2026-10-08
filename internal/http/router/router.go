@@ -15,6 +15,7 @@ type Handlers struct {
 	Bike      *handlers.BikeHandler
 	Breakdown *handlers.BreakdownHandler
 	Rental    *handlers.RentalHandler
+	Payout    *handlers.PayoutHandler
 }
 
 func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
@@ -45,8 +46,7 @@ func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
 		bikes.PUT("/:id", h.Bike.Update)
 		bikes.DELETE("/:id", h.Bike.Delete)
 
-		// Вложенный ресурс: поломки конкретного велосипеда
-		// ← ЭТОЙ СТРОКИ НЕ ХВАТАЕТ
+		// // Вложенные ресурсы
 		bikes.GET("/:id/breakdowns", h.Breakdown.ListByBike)
 		bikes.GET("/:id/rentals", h.Rental.ListByBike)
 	}
@@ -74,6 +74,17 @@ func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
 		rentals.POST("/:id/return", h.Rental.Return)
 		rentals.POST("/:id/pay", h.Rental.MarkPaid)
 		rentals.DELETE("/:id", h.Rental.Delete)
+	}
+
+	// Payouts
+	payouts := r.Group("/payouts")
+	{
+		payouts.GET("/preview", h.Payout.Preview) // ← ВАЖНО: до /:id
+		payouts.POST("", h.Payout.Create)
+		payouts.GET("", h.Payout.List)
+		payouts.GET("/:id", h.Payout.GetByID)
+		payouts.POST("/:id/pay", h.Payout.MarkPaid)
+		payouts.DELETE("/:id", h.Payout.Delete)
 	}
 
 	return r
