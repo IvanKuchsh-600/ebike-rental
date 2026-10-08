@@ -12,13 +12,13 @@ import (
 )
 
 type BikeRepository struct {
-	pool   *pgxpool.Pool
+	db     Querier
 	logger *slog.Logger
 }
 
 func NewBikeRepository(pool *pgxpool.Pool, logger *slog.Logger) *BikeRepository {
 	return &BikeRepository{
-		pool:   pool,
+		db:     pool,
 		logger: logger,
 	}
 }
@@ -31,7 +31,7 @@ func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 	`
 
 	var created bike.Bike
-	err := r.pool.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		b.SerialNumber, b.Model, b.Comment,
 	).Scan(
 		&created.ID,
@@ -58,7 +58,7 @@ func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, err
 	`
 
 	var b bike.Bike
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&b.ID,
 		&b.SerialNumber,
 		&b.Model,
@@ -85,7 +85,7 @@ func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 		ORDER BY created_at DESC
 	`
 
-	rows, err := r.pool.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query)
 	if err != nil {
 		r.logger.Error("failed to list bikes", "error", err)
 		return nil, fmt.Errorf("list bikes: %w", err)
@@ -111,7 +111,7 @@ func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 		}
 		bikes = append(bikes, b)
 	}
-	
+
 	err = rows.Err()
 	if err != nil {
 		return nil, fmt.Errorf("rows iteration: %w", err)
@@ -129,7 +129,7 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 	`
 
 	var updated bike.Bike
-	err := r.pool.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		b.SerialNumber, b.Model, b.Comment, b.ID,
 	).Scan(
 		&updated.ID,
@@ -152,7 +152,7 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 }
 
 func (r *BikeRepository) Delete(ctx context.Context, id int64) error {
-	result, err := r.pool.Exec(ctx, "DELETE FROM bikes WHERE id = $1", id)
+	result, err := r.db.Exec(ctx, "DELETE FROM bikes WHERE id = $1", id)
 	if err != nil {
 		r.logger.Error("failed to delete bike", "id", id, "error", err)
 		return fmt.Errorf("delete bike: %w", err)
@@ -167,7 +167,7 @@ func (r *BikeRepository) Delete(ctx context.Context, id int64) error {
 
 // SetRented — отметить велосипед как сданный/возвращённый.
 func (r *BikeRepository) SetRented(ctx context.Context, id int64, rented bool) error {
-	result, err := r.pool.Exec(ctx,
+	result, err := r.db.Exec(ctx,
 		"UPDATE bikes SET is_rented = $1 WHERE id = $2",
 		rented, id,
 	)
@@ -185,7 +185,7 @@ func (r *BikeRepository) SetRented(ctx context.Context, id int64, rented bool) e
 
 // SetBroken — отметить велосипед как сломанный/починенный.
 func (r *BikeRepository) SetBroken(ctx context.Context, id int64, broken bool) error {
-	result, err := r.pool.Exec(ctx,
+	result, err := r.db.Exec(ctx,
 		"UPDATE bikes SET is_broken = $1 WHERE id = $2",
 		broken, id,
 	)
@@ -199,4 +199,30 @@ func (r *BikeRepository) SetBroken(ctx context.Context, id int64, broken bool) e
 	}
 
 	return nil
+}
+
+// GetByIDForUpdate — SELECT ... FOR UPDATE, блокирует строку на время транзакции.
+// Вне транзакции использовать НЕЛЬЗЯ (pgx вернёт ошибку).
+func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.Bike, error) {
+	query := `
+		SELECT id, serial_number, model, is_rented, is_broken, comment, created_at
+		FROM bikes
+		WHERE id = $1
+		FOR UPDATE
+	`
+
+	var b bike.Bike
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&b.ID, &b.SerialNumber, &b.Model,
+		&b.IsRented, &b.IsBroken, &b.Comment, &b.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, bike.ErrNotFound
+		}
+		r.logger.Error("failed to get bike for update", "id", id, "error", err)
+		return nil, fmt.Errorf("get bike for update: %w", err)
+	}
+
+	return &b, nil
 }

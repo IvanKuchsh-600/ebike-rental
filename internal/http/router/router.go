@@ -14,6 +14,7 @@ import (
 type Handlers struct {
 	Bike      *handlers.BikeHandler
 	Breakdown *handlers.BreakdownHandler
+	Rental    *handlers.RentalHandler
 }
 
 func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
@@ -47,6 +48,7 @@ func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
 		// Вложенный ресурс: поломки конкретного велосипеда
 		// ← ЭТОЙ СТРОКИ НЕ ХВАТАЕТ
 		bikes.GET("/:id/breakdowns", h.Breakdown.ListByBike)
+		bikes.GET("/:id/rentals", h.Rental.ListByBike)
 	}
 
 	// Breakdowns
@@ -59,6 +61,19 @@ func New(db *pgxpool.Pool, h *Handlers) *gin.Engine {
 		breakdowns.PUT("/:id", h.Breakdown.Update)
 		breakdowns.POST("/:id/fix", h.Breakdown.MarkFixed)
 		breakdowns.DELETE("/:id", h.Breakdown.Delete)
+	}
+
+	// Rentals
+	rentals := r.Group("/rentals")
+	{
+		rentals.POST("", h.Rental.Create)
+		rentals.GET("", h.Rental.List)
+		rentals.GET("/active", h.Rental.ListActive) // ← ВАЖНО: до /:id
+		rentals.GET("/:id", h.Rental.GetByID)
+		rentals.PUT("/:id", h.Rental.Update)
+		rentals.POST("/:id/return", h.Rental.Return)
+		rentals.POST("/:id/pay", h.Rental.MarkPaid)
+		rentals.DELETE("/:id", h.Rental.Delete)
 	}
 
 	return r

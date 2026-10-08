@@ -12,13 +12,13 @@ import (
 )
 
 type BreakdownRepository struct {
-	pool   *pgxpool.Pool
+	db     Querier
 	logger *slog.Logger
 }
 
 func NewBreakdownRepository(pool *pgxpool.Pool, logger *slog.Logger) *BreakdownRepository {
 	return &BreakdownRepository{
-		pool:   pool,
+		db:     pool,
 		logger: logger,
 	}
 }
@@ -31,7 +31,7 @@ func (r *BreakdownRepository) Create(ctx context.Context, b *breakdown.Breakdown
 	`
 
 	var created breakdown.Breakdown
-	err := r.pool.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		b.BikeID, b.Reason, b.Cost, b.BrokenAt, b.IsFixed, b.FixedAt, b.Comment,
 	).Scan(
 		&created.ID,
@@ -60,7 +60,7 @@ func (r *BreakdownRepository) GetByID(ctx context.Context, id int64) (*breakdown
 	`
 
 	var b breakdown.Breakdown
-	err := r.pool.QueryRow(ctx, query, id).Scan(
+	err := r.db.QueryRow(ctx, query, id).Scan(
 		&b.ID,
 		&b.BikeID,
 		&b.Reason,
@@ -123,7 +123,7 @@ func (r *BreakdownRepository) Update(ctx context.Context, b *breakdown.Breakdown
 	`
 
 	var updated breakdown.Breakdown
-	err := r.pool.QueryRow(ctx, query,
+	err := r.db.QueryRow(ctx, query,
 		b.Reason, b.Cost, b.Comment, b.ID,
 	).Scan(
 		&updated.ID,
@@ -154,7 +154,7 @@ func (r *BreakdownRepository) MarkFixed(ctx context.Context, id int64) error {
 		WHERE id = $1 AND is_fixed = FALSE
 	`
 
-	result, err := r.pool.Exec(ctx, query, id)
+	result, err := r.db.Exec(ctx, query, id)
 	if err != nil {
 		r.logger.Error("failed to mark fixed", "id", id, "error", err)
 		return fmt.Errorf("mark fixed: %w", err)
@@ -175,7 +175,7 @@ func (r *BreakdownRepository) MarkFixed(ctx context.Context, id int64) error {
 }
 
 func (r *BreakdownRepository) Delete(ctx context.Context, id int64) error {
-	result, err := r.pool.Exec(ctx, "DELETE FROM breakdowns WHERE id = $1", id)
+	result, err := r.db.Exec(ctx, "DELETE FROM breakdowns WHERE id = $1", id)
 	if err != nil {
 		r.logger.Error("failed to delete breakdown", "id", id, "error", err)
 		return fmt.Errorf("delete breakdown: %w", err)
@@ -189,7 +189,7 @@ func (r *BreakdownRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (r *BreakdownRepository) queryList(ctx context.Context, query string, args ...any) ([]breakdown.Breakdown, error) {
-	rows, err := r.pool.Query(ctx, query, args...)
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		r.logger.Error("failed to list breakdowns", "error", err)
 		return nil, fmt.Errorf("list breakdowns: %w", err)
@@ -228,7 +228,7 @@ func (r *BreakdownRepository) queryList(ctx context.Context, query string, args 
 
 func (r *BreakdownRepository) exists(ctx context.Context, id int64) (bool, error) {
 	var exists bool
-	err := r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM breakdowns WHERE id = $1)", id).Scan(&exists)
+	err := r.db.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM breakdowns WHERE id = $1)", id).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("check breakdown exists: %w", err)
 	}

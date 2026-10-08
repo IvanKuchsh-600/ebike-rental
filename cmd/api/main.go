@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
+	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
 	"log/slog"
 	"net/http"
 	"os"
@@ -50,21 +51,29 @@ func run() error {
 	// 2. Репозитории
 	bikeRepo := postgres.NewBikeRepository(db, logger)
 	breakdownRepo := postgres.NewBreakdownRepository(db, logger)
+	rentalRepo := postgres.NewRentalRepository(db, logger)
+
+	// 3. Транзактор для rentals
+	rentalTransactor := postgres.NewRentalTransactor(db, logger)
 
 	// 3. Usecases
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
 	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
+	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
 
 	// 4. Handlers
 	bikeHandler := handlers.NewBikeHandler(bikeSvc)
 	breakdownHandler := handlers.NewBreakdownHandler(breakdownSvc)
+	rentalHandler := handlers.NewRentalHandler(rentalSvc)
 
 	handlersContainer := &router.Handlers{
 		Bike:      bikeHandler,
 		Breakdown: breakdownHandler,
+		Rental:    rentalHandler,
 	}
 
 	// 5. Router
+	// 6. Router
 	r := router.New(db, handlersContainer)
 
 	srv := &http.Server{
