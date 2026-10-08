@@ -89,9 +89,9 @@ func (h *BreakdownHandler) List(c *gin.Context) {
 // @Summary     Список поломок конкретного велосипеда
 // @Tags        breakdowns
 // @Produce     json
-// @Param       bike_id path int true "ID велосипеда"
+// @Param       id path int true "ID велосипеда"
 // @Success     200 {array} BreakdownResponse
-// @Router      /bikes/{bike_id}/breakdowns [get]
+// @Router      /bikes/{id}/breakdowns [get]
 func (h *BreakdownHandler) ListByBike(c *gin.Context) {
 	bikeID, err := parseID(c.Param("id"))
 	if err != nil {

@@ -199,7 +199,8 @@ func (r *BreakdownRepository) queryList(ctx context.Context, query string, args 
 	result := make([]breakdown.Breakdown, 0)
 	for rows.Next() {
 		var b breakdown.Breakdown
-		if err := rows.Scan(
+
+		err := rows.Scan(
 			&b.ID,
 			&b.BikeID,
 			&b.Reason,
@@ -209,10 +210,12 @@ func (r *BreakdownRepository) queryList(ctx context.Context, query string, args 
 			&b.FixedAt,
 			&b.Comment,
 			&b.CreatedAt,
-		); err != nil {
+		)
+		if err != nil {
 			r.logger.Error("failed to scan breakdown", "error", err)
 			return nil, fmt.Errorf("scan breakdown: %w", err)
 		}
+
 		result = append(result, b)
 	}
 

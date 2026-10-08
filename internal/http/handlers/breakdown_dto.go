@@ -7,8 +7,6 @@ import (
 	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
 )
 
-// ============ Request DTOs ============
-
 type CreateBreakdownRequest struct {
 	BikeID   int64      `json:"bike_id" binding:"required"`
 	Reason   string     `json:"reason" binding:"required"`
@@ -22,9 +20,6 @@ type UpdateBreakdownRequest struct {
 	Cost    *int64  `json:"cost"`
 	Comment *string `json:"comment"`
 }
-
-// ============ Response DTOs ============
-
 type BreakdownResponse struct {
 	ID        int64      `json:"id"`
 	BikeID    int64      `json:"bike_id"`
@@ -36,8 +31,6 @@ type BreakdownResponse struct {
 	Comment   *string    `json:"comment"`
 	CreatedAt time.Time  `json:"created_at"`
 }
-
-// ============ Mappers ============
 
 func toBreakdownResponse(b *breakdown.Breakdown) BreakdownResponse {
 	return BreakdownResponse{

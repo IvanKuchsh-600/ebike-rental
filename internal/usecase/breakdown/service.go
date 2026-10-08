@@ -140,7 +140,8 @@ func (s *Service) MarkFixed(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: id must be positive", breakdown.ErrInvalidInput)
 	}
 
-	if err := s.repo.MarkFixed(ctx, id); err != nil {
+	err := s.repo.MarkFixed(ctx, id)
+	if err != nil {
 		s.logger.Error("failed to mark breakdown as fixed", "id", id, "error", err)
 		return fmt.Errorf("mark fixed: %w", err)
 	}
