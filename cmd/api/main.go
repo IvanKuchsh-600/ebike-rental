@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
 	"log/slog"
 	"net/http"
 	"os"
@@ -48,15 +49,19 @@ func run() error {
 
 	// 2. Репозитории
 	bikeRepo := postgres.NewBikeRepository(db, logger)
+	breakdownRepo := postgres.NewBreakdownRepository(db, logger)
 
 	// 3. Usecases
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
+	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
 
 	// 4. Handlers
 	bikeHandler := handlers.NewBikeHandler(bikeSvc)
+	breakdownHandler := handlers.NewBreakdownHandler(breakdownSvc)
 
 	handlersContainer := &router.Handlers{
-		Bike: bikeHandler,
+		Bike:      bikeHandler,
+		Breakdown: breakdownHandler,
 	}
 
 	// 5. Router
