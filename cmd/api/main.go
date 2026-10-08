@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
-	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +16,9 @@ import (
 	"github.com/IvanKuchsh-600/ebike-rental/internal/repository/postgres"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/storage"
 	bikeusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/bike"
+	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
+	payoutusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/payout"
+	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
 )
 
 func main() {
@@ -39,7 +40,7 @@ func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// 1. Пул соединений — один на всё приложение
+	// 1. Пул соединений
 	db, err := storage.NewPostgresPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err
@@ -52,27 +53,30 @@ func run() error {
 	bikeRepo := postgres.NewBikeRepository(db, logger)
 	breakdownRepo := postgres.NewBreakdownRepository(db, logger)
 	rentalRepo := postgres.NewRentalRepository(db, logger)
+	payoutRepo := postgres.NewPayoutRepository(db, logger)
 
 	// 3. Транзактор для rentals
 	rentalTransactor := postgres.NewRentalTransactor(db, logger)
 
-	// 3. Usecases
+	// 4. Usecases
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
 	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
 	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
+	payoutSvc := payoutusecase.NewService(payoutRepo, cfg.PartnerShare, logger)
 
-	// 4. Handlers
+	// 5. Handlers
 	bikeHandler := handlers.NewBikeHandler(bikeSvc)
 	breakdownHandler := handlers.NewBreakdownHandler(breakdownSvc)
 	rentalHandler := handlers.NewRentalHandler(rentalSvc)
+	payoutHandler := handlers.NewPayoutHandler(payoutSvc)
 
 	handlersContainer := &router.Handlers{
 		Bike:      bikeHandler,
 		Breakdown: breakdownHandler,
 		Rental:    rentalHandler,
+		Payout:    payoutHandler,
 	}
 
-	// 5. Router
 	// 6. Router
 	r := router.New(db, handlersContainer)
 
