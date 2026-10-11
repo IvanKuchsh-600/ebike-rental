@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/IvanKuchsh-600/ebike-rental/internal/auth"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/IvanKuchsh-600/ebike-rental/internal/http/router"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/repository/postgres"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/storage"
+	authusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/auth"
 	bikeusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/bike"
 	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
 	payoutusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/payout"
@@ -54,31 +56,41 @@ func run() error {
 	breakdownRepo := postgres.NewBreakdownRepository(db, logger)
 	rentalRepo := postgres.NewRentalRepository(db, logger)
 	payoutRepo := postgres.NewPayoutRepository(db, logger)
+	userRepo := postgres.NewUserRepository(db, logger)
 
 	// 3. Транзактор для rentals
 	rentalTransactor := postgres.NewRentalTransactor(db, logger)
 
-	// 4. Usecases
+	// 4. Генератор токенов
+	tokenGen := auth.NewJWTGenerator(cfg.JWTSecret, cfg.JWTExpiryHours)
+
+	// 5. Usecases
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
 	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
 	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
 	payoutSvc := payoutusecase.NewService(payoutRepo, cfg.PartnerShare, logger)
+	authSvc := authusecase.NewService(userRepo, tokenGen, logger)
 
-	// 5. Handlers
+	// 6. Handlers
 	bikeHandler := handlers.NewBikeHandler(bikeSvc)
 	breakdownHandler := handlers.NewBreakdownHandler(breakdownSvc)
 	rentalHandler := handlers.NewRentalHandler(rentalSvc)
 	payoutHandler := handlers.NewPayoutHandler(payoutSvc)
+	authHandler := handlers.NewAuthHandler(authSvc)
 
 	handlersContainer := &router.Handlers{
 		Bike:      bikeHandler,
 		Breakdown: breakdownHandler,
 		Rental:    rentalHandler,
 		Payout:    payoutHandler,
+		Auth:      authHandler,
 	}
 
-	// 6. Router
-	r := router.New(db, handlersContainer)
+	// 7. Router
+	routerCfg := router.Config{
+		JWTSecret: cfg.JWTSecret,
+	}
+	r := router.New(db, handlersContainer, routerCfg)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.AppPort,

@@ -9,10 +9,12 @@ import (
 )
 
 type Config struct {
-	AppPort      string
-	DatabaseURL  string
-	LogLevel     string
-	PartnerShare float64
+	AppPort        string
+	DatabaseURL    string
+	LogLevel       string
+	PartnerShare   float64
+	JWTSecret      string
+	JWTExpiryHours int
 }
 
 func Load() (*Config, error) {
@@ -26,11 +28,26 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("PARTNER_SHARE must be in (0, 1], got %f", partnerShare)
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+	if len(jwtSecret) < 32 {
+		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
+	}
+
+	jwtExpiryHours, err := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
+	if err != nil || jwtExpiryHours <= 0 {
+		return nil, fmt.Errorf("JWT_EXPIRY_HOURS must be a positive integer")
+	}
+
 	cfg := &Config{
-		AppPort:      getEnv("APP_PORT", "8080"),
-		DatabaseURL:  os.Getenv("DATABASE_URL"),
-		LogLevel:     getEnv("LOG_LEVEL", "info"),
-		PartnerShare: partnerShare,
+		AppPort:        getEnv("APP_PORT", "8080"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		LogLevel:       getEnv("LOG_LEVEL", "info"),
+		PartnerShare:   partnerShare,
+		JWTSecret:      jwtSecret,
+		JWTExpiryHours: jwtExpiryHours,
 	}
 
 	if cfg.DatabaseURL == "" {
