@@ -19,6 +19,7 @@ import (
 	authusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/auth"
 	bikeusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/bike"
 	breakdownusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/breakdown"
+	partnerusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/partner"
 	payoutusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/payout"
 	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
 )
@@ -69,6 +70,13 @@ func run() error {
 	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
 	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
 	payoutSvc := payoutusecase.NewService(payoutRepo, cfg.PartnerShare, logger)
+	partnerSvc := partnerusecase.NewService(
+		bikeRepo,
+		rentalRepo,
+		payoutRepo,
+		cfg.PartnerShare,
+		logger,
+	)
 	authSvc := authusecase.NewService(userRepo, tokenGen, logger)
 
 	// 6. Handlers
@@ -77,6 +85,13 @@ func run() error {
 	rentalHandler := handlers.NewRentalHandler(rentalSvc)
 	payoutHandler := handlers.NewPayoutHandler(payoutSvc)
 	authHandler := handlers.NewAuthHandler(authSvc)
+	partnerHandler := handlers.NewPartnerHandler(
+		partnerSvc,
+		bikeSvc,
+		rentalSvc,
+		breakdownSvc,
+		payoutSvc,
+	)
 
 	handlersContainer := &router.Handlers{
 		Bike:      bikeHandler,
@@ -84,6 +99,7 @@ func run() error {
 		Rental:    rentalHandler,
 		Payout:    payoutHandler,
 		Auth:      authHandler,
+		Partner:   partnerHandler,
 	}
 
 	// 7. Router

@@ -18,6 +18,7 @@ type Handlers struct {
 	Rental    *handlers.RentalHandler
 	Payout    *handlers.PayoutHandler
 	Auth      *handlers.AuthHandler
+	Partner   *handlers.PartnerHandler
 }
 
 type Config struct {
@@ -111,6 +112,23 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 			payouts.POST("/:id/pay", h.Payout.MarkPaid)
 			payouts.DELETE("/:id", h.Payout.Delete)
 		}
+	}
+
+	// Partner-only routes
+	partner := protected.Group("/partner")
+	partner.Use(middleware.RequireRole("partner"))
+	{
+		partner.GET("/dashboard", h.Partner.Dashboard)
+
+		partner.GET("/bikes", h.Partner.ListBikes)
+		partner.GET("/bikes/:id", h.Partner.GetBike)
+		partner.GET("/bikes/:id/breakdowns", h.Partner.ListBikeBreakdowns)
+
+		partner.GET("/rentals", h.Partner.ListRentals)
+		partner.GET("/breakdowns", h.Partner.ListBreakdowns)
+
+		partner.GET("/payouts", h.Partner.ListPayouts)
+		partner.GET("/payouts/preview", h.Partner.PreviewPayout)
 	}
 
 	return r
