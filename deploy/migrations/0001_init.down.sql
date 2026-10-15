@@ -1,3 +1,0 @@
-DROP TABLE IF EXISTS breakdowns;
-DROP TABLE IF EXISTS rentals;
-DROP TABLE IF EXISTS bikes;

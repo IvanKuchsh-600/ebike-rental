@@ -33,3 +33,15 @@ dist/
 
 # Logs
 *.log
+
+# Build artifacts
+build/
+deploy/
+ebike-deploy.zip
+*.zip
+
+# Uploads (пользовательские данные)
+uploads/
+
+# TODO (личные заметки)
+TODO.md
