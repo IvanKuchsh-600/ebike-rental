@@ -207,8 +207,15 @@ func (h *BreakdownHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, breakdown.ErrNotFound):
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: "breakdown not found"})
+
 	case errors.Is(err, breakdown.ErrInvalidInput):
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+
+	case errors.Is(err, breakdown.ErrCannotDeleteFixed):
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Нельзя удалить починенную поломку. История должна сохраниться.",
+		})
+
 	default:
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 	}

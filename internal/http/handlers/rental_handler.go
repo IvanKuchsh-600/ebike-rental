@@ -250,6 +250,16 @@ func (h *RentalHandler) handleError(c *gin.Context, err error) {
 	case errors.Is(err, rental.ErrInvalidInput):
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 
+	case errors.Is(err, rental.ErrCannotDeletePaid):
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Нельзя удалить оплаченную аренду. Сначала отмените оплату.",
+		})
+
+	case errors.Is(err, rental.ErrCannotDeleteReturned):
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Нельзя удалить возвращённую аренду. История должна сохраниться.",
+		})
+
 	default:
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 	}

@@ -70,16 +70,27 @@ type PartnerBikeResponse struct {
 	Model        *string   `json:"model"`
 	IsRented     bool      `json:"is_rented"`
 	IsBroken     bool      `json:"is_broken"`
+	PhotoURL     *string   `json:"photo_url"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 func toPartnerBikeResponse(b *bike.Bike) PartnerBikeResponse {
+	var photoURL *string
+	if b.PhotoPath != nil {
+		url := "/" + *b.PhotoPath
+		if b.PhotoUpdatedAt != nil {
+			url += "?t=" + b.PhotoUpdatedAt.Format("20060102150405")
+		}
+		photoURL = &url
+	}
+
 	return PartnerBikeResponse{
 		ID:           b.ID,
 		SerialNumber: b.SerialNumber,
 		Model:        b.Model,
 		IsRented:     b.IsRented,
 		IsBroken:     b.IsBroken,
+		PhotoURL:     photoURL,
 		CreatedAt:    b.CreatedAt,
 	}
 }

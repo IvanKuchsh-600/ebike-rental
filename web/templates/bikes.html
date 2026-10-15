@@ -1,0 +1,146 @@
+{{define "content"}}
+<div class="page-header">
+    <h2>Велосипеды</h2>
+    <button class="btn-action" onclick="openCreateBikeForm()">Добавить велосипед</button>
+</div>
+
+<!-- Форма создания (скрыта по умолчанию) -->
+<!-- Форма (создание / редактирование) -->
+<!-- Форма (создание / редактирование) -->
+<!-- Форма (создание / редактирование) -->
+<article id="bike-form-container" style="display: none; margin-bottom: 2rem;">
+    <header>
+        <h3 id="bike-form-title">Новый велосипед</h3>
+    </header>
+
+    <form id="bike-form" onsubmit="handleBikeFormSubmit(event)">
+        <!-- Скрытое поле: id для редактирования -->
+        <input type="hidden" id="bike-form-id" value="">
+
+        <label>
+            Серийный номер *
+            <input type="text" name="serial_number" id="bike-form-serial" required placeholder="BIKE-001">
+        </label>
+
+        <label>
+            Модель
+            <input type="text" name="model" id="bike-form-model" placeholder="Xiaomi Pro 2">
+        </label>
+
+        <label>
+            Комментарий
+            <textarea name="comment" id="bike-form-comment" rows="2" placeholder="Заметки"></textarea>
+        </label>
+
+        <label>
+            Фото
+            <input type="file" id="bike-form-photo" accept="image/jpeg,image/png,image/webp">
+            <small style="color: var(--pico-muted-color);">JPEG, PNG, WebP. Максимум 5 MB.</small>
+        </label>
+
+        <!-- Превью текущего фото -->
+        <div id="bike-photo-preview" style="margin-top: 1rem;"></div>
+
+        <div class="form-actions">
+            <button type="submit" id="bike-form-submit">Сохранить</button>
+            <button type="button" class="secondary" onclick="closeBikeForm()">Отмена</button>
+        </div>
+
+        <div id="bike-form-error" style="color: red; margin-top: 1rem; display: none;"></div>
+    </form>
+</article>
+
+<!-- Таблица велосипедов -->
+<div id="bikes-loading">Загрузка...</div>
+<div id="bikes-error" style="color: red; display: none;"></div>
+
+<div class="table-wrapper">
+<table id="bikes-table" style="display: none;">
+        <thead>
+        <tr>
+            <th>Фото</th>
+            <th>ID</th>
+            <th>Серийный номер</th>
+            <th>Модель</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="bikes-tbody"></tbody>
+    </table>
+</div>
+
+<div id="bikes-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+    Нет велосипедов. Добавьте первый!
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadBikesPage);
+</script>
+
+<!-- Модалка / секция с поломками велосипеда -->
+<article id="bike-details" class="bike-details-card" style="display: none;">
+    <header class="bike-details-header">
+        <h3 id="bike-details-title">Велосипед</h3>
+        <button class="secondary outline btn-sm" onclick="closeBikeDetails()">Закрыть</button>
+    </header>
+
+    <div class="bike-details-body">
+        <!-- Фото -->
+        <div class="bike-details-photo" id="bike-details-photo-container">
+            <!-- Заполняется через JS -->
+        </div>
+
+        <!-- Информация -->
+        <div class="bike-details-info">
+            <div class="bike-info-list">
+                <div class="bike-info-item">
+                    <div class="bike-info-label">Серийный номер</div>
+                    <div class="bike-info-value" id="bike-details-serial">—</div>
+                </div>
+
+                <div class="bike-info-item">
+                    <div class="bike-info-label">Модель</div>
+                    <div class="bike-info-value" id="bike-details-model">—</div>
+                </div>
+
+                <div class="bike-info-item">
+                    <div class="bike-info-label">Статус</div>
+                    <div class="bike-info-value" id="bike-details-status">—</div>
+                </div>
+
+                <div class="bike-info-item">
+                    <div class="bike-info-label">Дата добавления</div>
+                    <div class="bike-info-value" id="bike-details-created">—</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Секция поломок -->
+    <div class="bike-details-breakdowns">
+        <h4>История поломок</h4>
+
+        <div id="breakdowns-loading">Загрузка...</div>
+        <div id="breakdowns-error" style="color: red; display: none;"></div>
+
+        <div class="table-wrapper">
+            <table id="breakdowns-table" style="display: none;">
+                <thead>
+                <tr>
+                    <th>Причина</th>
+                    <th>Стоимость</th>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                </tr>
+                </thead>
+                <tbody id="breakdowns-tbody"></tbody>
+            </table>
+        </div>
+
+        <div id="breakdowns-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+            У этого велосипеда нет поломок
+        </div>
+    </div>
+</article>
+{{end}}

@@ -1,0 +1,56 @@
+{{define "content"}}
+<div class="page-header">
+    <h2>Дашборд</h2>
+    <span id="user-info" style="color: var(--pico-muted-color);"></span>
+</div>
+
+<div class="stats-grid">
+    <article class="stat-card">
+        <h4 class="stat-card-label">Всего</h4>
+        <p class="stat-card-value" id="stat-total">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Сдано</h4>
+        <p class="stat-card-value" id="stat-rented">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Сломано</h4>
+        <p class="stat-card-value" id="stat-broken">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Свободно</h4>
+        <p class="stat-card-value" id="stat-available">—</p>
+    </article>
+</div>
+
+<!-- Список велосипедов -->
+<section style="margin-top: 3rem;">
+    <h3>Велосипеды</h3>
+    <div id="bikes-loading">Загрузка...</div>
+    <div id="bikes-error" style="color: red; display: none;"></div>
+    <div class="table-wrapper">
+        <table id="bikes-table" style="display: none;">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Серийный номер</th>
+                <th>Модель</th>
+                <th>Статус</th>
+            </tr>
+            </thead>
+            <tbody id="bikes-tbody"></tbody>
+        </table>
+    </div>
+    <div id="bikes-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+        Нет велосипедов
+    </div>
+</section>
+
+<script>
+    // Проверяем авторизацию и загружаем данные при открытии страницы
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{{end}}

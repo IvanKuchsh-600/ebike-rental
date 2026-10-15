@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -151,6 +152,10 @@ func (h *BikeHandler) handleError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, bike.ErrNotFound):
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: "bike not found"})
+	case errors.Is(err, bike.ErrHasRentals):
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Нельзя удалить велосипед: он был в аренде. История должна сохраниться.",
+		})
 	case errors.Is(err, bike.ErrInvalidInput):
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 	default:
@@ -160,4 +165,77 @@ func (h *BikeHandler) handleError(c *gin.Context, err error) {
 
 func parseID(s string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
+}
+
+// UploadPhoto godoc
+// @Summary     Загрузить фото велосипеда
+// @Tags        bikes
+// @Accept      multipart/form-data
+// @Produce     json
+// @Param       id path int true "ID велосипеда"
+// @Param       photo formData file true "Файл фото"
+// @Success     200 {object} BikeResponse
+// @Failure     400 {object} ErrorResponse
+// @Failure     404 {object} ErrorResponse
+// @Router      /bikes/{id}/photo [post]
+func (h *BikeHandler) UploadPhoto(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	// Получаем файл из form-data
+	fileHeader, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "photo file is required"})
+		return
+	}
+
+	// Открываем файл
+	file, err := fileHeader.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to open file"})
+		return
+	}
+	defer file.Close()
+
+	// Читаем содержимое
+	content, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to read file"})
+		return
+	}
+
+	// Отправляем в usecase
+	updated, err := h.usecase.UploadPhoto(c.Request.Context(), id, content, fileHeader.Filename)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toBikeResponse(updated))
+}
+
+// DeletePhoto godoc
+// @Summary     Удалить фото велосипеда
+// @Tags        bikes
+// @Param       id path int true "ID велосипеда"
+// @Success     204
+// @Failure     400 {object} ErrorResponse
+// @Failure     404 {object} ErrorResponse
+// @Router      /bikes/{id}/photo [delete]
+func (h *BikeHandler) DeletePhoto(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	if err := h.usecase.DeletePhoto(c.Request.Context(), id); err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

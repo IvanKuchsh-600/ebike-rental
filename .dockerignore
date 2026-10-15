@@ -1,6 +1,9 @@
 .git
 .env
-bin/
 *.exe
-migrations/
+bin/
 *.md
+.vscode/
+.idea/
+api.ps1
+TODO.md

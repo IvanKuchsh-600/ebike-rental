@@ -1,0 +1,49 @@
+{{define "content"}}
+<div class="page-header">
+    <h2>Кабинет партнёра</h2>
+    <span id="user-info" style="color: var(--pico-muted-color);"></span>
+</div>
+
+<!-- Карточки с цифрами -->
+<div class="stats-grid">
+    <article class="stat-card">
+        <h4 class="stat-card-label">Всего</h4>
+        <p class="stat-card-value" id="stat-total">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Сдано</h4>
+        <p class="stat-card-value" id="stat-rented">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Сломано</h4>
+        <p class="stat-card-value" id="stat-broken">—</p>
+    </article>
+
+    <article class="stat-card">
+        <h4 class="stat-card-label">Свободно</h4>
+        <p class="stat-card-value" id="stat-available">—</p>
+    </article>
+</div>
+
+<!-- Финансовая сводка за месяц -->
+<section style="margin-top: 3rem;">
+    <h3>Доход за <span id="month-label">—</span></h3>
+    <div class="stats-grid">
+        <article class="stat-card">
+            <h4 class="stat-card-label">Общая выручка</h4>
+            <p class="stat-card-value" id="stat-revenue">—</p>
+        </article>
+
+        <article class="stat-card">
+            <h4 class="stat-card-label">Ваша доля</h4>
+            <p class="stat-card-value stat-card-value-green" id="stat-partner-share">—</p>
+        </article>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadPartnerDashboard);
+</script>
+{{end}}

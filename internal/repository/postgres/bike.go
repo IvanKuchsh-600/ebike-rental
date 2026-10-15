@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgconn"
 	"log/slog"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
@@ -27,7 +28,7 @@ func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 	query := `
 		INSERT INTO bikes (serial_number, model, comment)
 		VALUES ($1, $2, $3)
-		RETURNING id, serial_number, model, is_rented, is_broken, comment, created_at
+		RETURNING id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
 	`
 
 	var created bike.Bike
@@ -40,6 +41,8 @@ func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 		&created.IsRented,
 		&created.IsBroken,
 		&created.Comment,
+		&created.PhotoPath,
+		&created.PhotoUpdatedAt,
 		&created.CreatedAt,
 	)
 	if err != nil {
@@ -52,7 +55,7 @@ func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 
 func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, error) {
 	query := `
-		SELECT id, serial_number, model, is_rented, is_broken, comment, created_at
+		SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
 		FROM bikes
 		WHERE id = $1
 	`
@@ -65,6 +68,8 @@ func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, err
 		&b.IsRented,
 		&b.IsBroken,
 		&b.Comment,
+		&b.PhotoPath,
+		&b.PhotoUpdatedAt,
 		&b.CreatedAt,
 	)
 	if err != nil {
@@ -80,10 +85,10 @@ func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, err
 
 func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 	query := `
-		SELECT id, serial_number, model, is_rented, is_broken, comment, created_at
-		FROM bikes
-		ORDER BY created_at DESC
-	`
+        SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+        FROM bikes
+        ORDER BY id ASC
+    `
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {
@@ -103,6 +108,8 @@ func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 			&b.IsRented,
 			&b.IsBroken,
 			&b.Comment,
+			&b.PhotoPath,
+			&b.PhotoUpdatedAt,
 			&b.CreatedAt,
 		)
 		if err != nil {
@@ -125,7 +132,7 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 		UPDATE bikes
 		SET serial_number = $1, model = $2, comment = $3
 		WHERE id = $4
-		RETURNING id, serial_number, model, is_rented, is_broken, comment, created_at
+		RETURNING id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
 	`
 
 	var updated bike.Bike
@@ -138,6 +145,8 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 		&updated.IsRented,
 		&updated.IsBroken,
 		&updated.Comment,
+		&updated.PhotoPath,
+		&updated.PhotoUpdatedAt,
 		&updated.CreatedAt,
 	)
 	if err != nil {
@@ -154,14 +163,16 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 func (r *BikeRepository) Delete(ctx context.Context, id int64) error {
 	result, err := r.db.Exec(ctx, "DELETE FROM bikes WHERE id = $1", id)
 	if err != nil {
+		// Проверяем на нарушение внешнего ключа
+		if isForeignKeyViolation(err) {
+			return bike.ErrHasRentals
+		}
 		r.logger.Error("failed to delete bike", "id", id, "error", err)
 		return fmt.Errorf("delete bike: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return bike.ErrNotFound
 	}
-
 	return nil
 }
 
@@ -205,7 +216,7 @@ func (r *BikeRepository) SetBroken(ctx context.Context, id int64, broken bool) e
 // Вне транзакции использовать НЕЛЬЗЯ (pgx вернёт ошибку).
 func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.Bike, error) {
 	query := `
-		SELECT id, serial_number, model, is_rented, is_broken, comment, created_at
+		SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
 		FROM bikes
 		WHERE id = $1
 		FOR UPDATE
@@ -214,7 +225,7 @@ func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.
 	var b bike.Bike
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&b.ID, &b.SerialNumber, &b.Model,
-		&b.IsRented, &b.IsBroken, &b.Comment, &b.CreatedAt,
+		&b.IsRented, &b.IsBroken, &b.Comment, &b.PhotoPath, &b.PhotoUpdatedAt, &b.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -225,4 +236,54 @@ func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.
 	}
 
 	return &b, nil
+}
+
+func isForeignKeyViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23503" // foreign_key_violation
+	}
+	return false
+}
+
+// UpdatePhoto — устанавливает фото велосипеда.
+func (r *BikeRepository) UpdatePhoto(ctx context.Context, id int64, photoPath string) error {
+	query := `
+		UPDATE bikes
+		SET photo_path = $1, photo_updated_at = NOW()
+		WHERE id = $2
+	`
+
+	result, err := r.db.Exec(ctx, query, photoPath, id)
+	if err != nil {
+		r.logger.Error("failed to update bike photo", "id", id, "error", err)
+		return fmt.Errorf("update bike photo: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return bike.ErrNotFound
+	}
+
+	return nil
+}
+
+// ClearPhoto — удаляет фото велосипеда.
+func (r *BikeRepository) ClearPhoto(ctx context.Context, id int64) error {
+	query := `
+		UPDATE bikes
+		SET photo_path = NULL, photo_updated_at = NULL
+		WHERE id = $1
+	`
+
+	result, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		r.logger.Error("failed to clear bike photo", "id", id, "error", err)
+		return fmt.Errorf("clear bike photo: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return bike.ErrNotFound
+	}
+
+	return nil
 }

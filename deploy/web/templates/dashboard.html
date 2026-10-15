@@ -1,0 +1,55 @@
+{{define "content"}}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Дашборд</h2>
+    <span id="user-info" style="color: var(--pico-muted-color);"></span>
+</div>
+
+<!-- Карточки с цифрами -->
+<div class="grid">
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Всего</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-total">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Сдано</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-rented">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Сломано</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-broken">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Свободно</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-available">—</p>
+    </article>
+</div>
+
+<!-- Список велосипедов -->
+<section style="margin-top: 3rem;">
+    <h3>Велосипеды</h3>
+    <div id="bikes-loading">Загрузка...</div>
+    <div id="bikes-error" style="color: red; display: none;"></div>
+    <table id="bikes-table" style="display: none;">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Серийный номер</th>
+            <th>Модель</th>
+            <th>Статус</th>
+        </tr>
+        </thead>
+        <tbody id="bikes-tbody"></tbody>
+    </table>
+    <div id="bikes-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+        Нет велосипедов
+    </div>
+</section>
+
+<script>
+    // Проверяем авторизацию и загружаем данные при открытии страницы
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{{end}}

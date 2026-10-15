@@ -2,7 +2,6 @@ package payout
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -160,10 +159,18 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: id must be positive", payout.ErrInvalidInput)
 	}
 
+	// Загружаем выплату, чтобы проверить правила
+	p, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Нельзя удалить выплаченную выплату
+	if p.IsPaid {
+		return payout.ErrCannotDeletePaid
+	}
+
 	if err := s.repo.Delete(ctx, id); err != nil {
-		if errors.Is(err, payout.ErrNotFound) {
-			return err
-		}
 		s.logger.Error("failed to delete payout", "id", id, "error", err)
 		return fmt.Errorf("delete payout: %w", err)
 	}

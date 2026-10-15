@@ -1,0 +1,482 @@
+/* Компактные кнопки для таблиц */
+.btn-sm {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    height: auto !important;
+}
+
+/* Контейнер для кнопок действий */
+.actions-cell {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: nowrap;   /* ← не переносить */
+    white-space: nowrap;
+}
+
+/* Кнопка-иконка (для удаления) */
+.btn-icon {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1 !important;
+    min-width: auto !important;
+    width: auto !important;
+}
+
+/* Карточка велосипеда: свойства влево */
+.bike-info-dl {
+    text-align: left;
+}
+
+.bike-info-dl dt {
+    font-weight: 600;
+    color: var(--pico-muted-color);
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.bike-info-dl dt:first-child {
+    margin-top: 0;
+}
+
+.bike-info-dl dd {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+
+/* ============ Навигация ============ */
+
+/* ============ Навигация ============ */
+
+/* ============ Навигация ============ */
+
+nav.app-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    flex-wrap: wrap;
+}
+
+nav.app-nav .app-nav-brand {
+    font-size: 1rem;
+    white-space: nowrap;
+}
+
+nav.app-nav ul.app-nav-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    align-items: center;
+}
+
+nav.app-nav ul.app-nav-menu li {
+    margin: 0;
+}
+
+nav.app-nav ul.app-nav-menu a {
+    text-decoration: none;
+    font-size: 0.95rem;
+    color: var(--pico-primary);
+}
+
+nav.app-nav ul.app-nav-menu a:hover {
+    text-decoration: underline;
+}
+
+nav.app-nav ul.app-nav-menu a.active {
+    font-weight: 600;
+    color: var(--pico-color);
+}
+
+/* Бургер — скрыт на десктопе */
+nav.app-nav button.nav-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: #000000 !important;
+    line-height: 0;
+    margin: 0 !important;
+    width: auto !important;
+    min-width: auto !important;
+}
+
+nav.app-nav button.nav-toggle svg {
+    stroke: currentColor;
+    display: block;
+}
+
+/* Если тема тёмная — белый цвет */
+@media (prefers-color-scheme: dark) {
+    nav.app-nav button.nav-toggle {
+        color: #ffffff !important;
+    }
+}
+
+nav.app-nav button.nav-toggle:hover {
+    stroke: var(--pico-color);
+    display: block;
+}
+
+/* Мобильная версия */
+@media (max-width: 768px) {
+    nav.app-nav {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    nav.app-nav .app-nav-brand {
+        flex: 1;
+    }
+
+    nav.app-nav button.nav-toggle {
+        display: block !important;
+    }
+
+    nav.app-nav ul.app-nav-menu {
+        display: none !important;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 0;
+        margin-top: 0.5rem;
+        border-top: 1px solid var(--pico-muted-border-color);
+        padding-top: 0.5rem;
+    }
+
+    nav.app-nav ul.app-nav-menu.open {
+        display: flex !important;
+    }
+
+    nav.app-nav ul.app-nav-menu li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid var(--pico-muted-border-color);
+        margin: 0;
+    }
+
+    nav.app-nav ul.app-nav-menu li:last-child {
+        border-bottom: none;
+    }
+
+    nav.app-nav ul.app-nav-menu a {
+        display: block;
+        font-size: 1rem;
+        padding: 0.25rem 0;
+        text-decoration: none;
+    }
+}
+
+/* Action-кнопки (Добавить и т.д.) */
+.btn-action {
+    padding: 0.4rem 0.9rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1.2 !important;
+    height: auto !important;
+    margin: 0 !important;
+    white-space: nowrap;
+}
+
+/* Горизонтальный скролл для таблиц на узких экранах */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+}
+
+.table-wrapper table {
+    min-width: 700px;
+}
+
+/* ============ Stats cards (dashboard) ============ */
+
+.stats-grid {
+    display: grid;
+    /* Адаптивно: сколько карточек влезет, столько и в ряд */
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    text-align: center;
+    padding: 1rem 0.75rem;
+    margin: 0;
+    background: var(--pico-card-background-color);
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+    min-width: 0; /* позволяет сжиматься */
+}
+
+.stat-card-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--pico-muted-color);
+    margin: 0 0 0.25rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.stat-card-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.1;
+    color: var(--pico-color);
+}
+
+.stat-card-value-green {
+    color: #27ae60;
+}
+
+
+/* Смартфон */
+@media (max-width: 500px) {
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .stat-card {
+        padding: 0.65rem 0.5rem;
+    }
+
+    .stat-card-label {
+        font-size: 0.7rem;
+    }
+
+    .stat-card-value {
+        font-size: 1.35rem;
+    }
+}
+
+
+/* Заголовок страницы с кнопкой действия */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 500px) {
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .page-header h2 {
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+    }
+
+    .page-header button {
+        width: 100%;
+    }
+}
+
+/* Кнопки в формах — компактные, не на всю ширину */
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-actions button {
+    width: auto !important;
+    flex: 0 0 auto;
+    padding: 0.5rem 1.5rem !important;
+    font-size: 0.9rem !important;
+    line-height: 1.2 !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+}
+
+/* На узких экранах — кнопки на всю ширину */
+@media (max-width: 500px) {
+    .form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .form-actions button {
+        width: 100% !important;
+        padding: 0.75rem 1rem !important;
+        font-size: 1rem !important;
+    }
+}
+
+/* ============ Карточка велосипеда ============ */
+
+.bike-details-card {
+    margin: 2rem auto 0;
+    max-width: 900px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.bike-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    margin: 0;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    background: var(--pico-card-sectioning-background-color);
+}
+
+.bike-details-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+/* Две колонки: фото + инфо */
+.bike-details-body {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 2rem;
+    padding: 1.5rem;
+    align-items: stretch;   /* ← растягивает обе колонки по высоте */
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.bike-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+
+    /*padding-bottom: 0.75rem;*/
+    /*border-bottom: 1px solid var(--pico-muted-border-color);*/
+}
+/*.bike-info-item:last-child {*/
+/*    border-bottom: none;*/
+/*    padding-bottom: 0;*/
+/*}*/
+
+.bike-info-label {
+    font-weight: 500;
+    color: var(--pico-muted-color);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.bike-info-value {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* Информация: флекс-колонка с равномерным распределением */
+.bike-info-list {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    gap: 0.75rem;
+}
+
+.bike-details-photo img,
+.bike-details-photo > div {
+    width: 240px;
+    height: 240px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--pico-muted-border-color);
+    display: block;
+}
+
+/* Информация в карточке */
+.bike-info-dl {
+    text-align: left;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.bike-info-dl dt {
+    font-weight: 500;
+    color: var(--pico-muted-color);
+    margin: 0;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.bike-info-dl dd {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 500;
+}
+
+/* Секция поломок */
+.bike-details-breakdowns {
+    padding: 1.5rem;
+    border-top: 1px solid var(--pico-muted-border-color);
+}
+
+.bike-details-breakdowns h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+/* Мобильная версия */
+@media (max-width: 700px) {
+    .bike-details-header {
+        padding: 0.75rem 1rem;
+    }
+
+    .bike-details-header h3 {
+        font-size: 1rem;
+    }
+
+    .bike-details-body {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 2rem;
+        padding: 1.5rem;
+        align-items: stretch;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+
+    .bike-details-photo img,
+    .bike-details-photo > div {
+        width: 100%;
+        max-width: 320px;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+    }
+
+    .bike-details-breakdowns {
+        padding: 1rem;
+    }
+
+    .bike-info-dl {
+        gap: 0.5rem;
+    }
+}

@@ -1,0 +1,21 @@
+{{define "content"}}
+<article style="max-width: 400px; margin: 3rem auto;">
+    <h2>Вход</h2>
+
+    <form id="login-form" onsubmit="handleLogin(event)">
+        <label>
+            Email
+            <input type="email" name="email" required autocomplete="email">
+        </label>
+
+        <label>
+            Пароль
+            <input type="password" name="password" required autocomplete="current-password">
+        </label>
+
+        <button type="submit">Войти</button>
+    </form>
+
+    <div id="error" style="color: red; margin-top: 1rem;"></div>
+</article>
+{{end}}

@@ -30,12 +30,23 @@ type BikeResponse struct {
 	IsRented     bool      `json:"is_rented"`
 	IsBroken     bool      `json:"is_broken"`
 	Comment      *string   `json:"comment"`
+	PhotoURL     *string   `json:"photo_url"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ============ Mappers ============
 
 func toBikeResponse(b *bike.Bike) BikeResponse {
+	var photoURL *string
+	if b.PhotoPath != nil {
+		url := "/" + *b.PhotoPath
+		// Cache-buster: если фото обновлялось, добавляем timestamp
+		if b.PhotoUpdatedAt != nil {
+			url += "?t=" + b.PhotoUpdatedAt.Format("20060102150405")
+		}
+		photoURL = &url
+	}
+
 	return BikeResponse{
 		ID:           b.ID,
 		SerialNumber: b.SerialNumber,
@@ -43,6 +54,7 @@ func toBikeResponse(b *bike.Bike) BikeResponse {
 		IsRented:     b.IsRented,
 		IsBroken:     b.IsBroken,
 		Comment:      b.Comment,
+		PhotoURL:     photoURL,
 		CreatedAt:    b.CreatedAt,
 	}
 }

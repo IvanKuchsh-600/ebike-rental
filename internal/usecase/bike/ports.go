@@ -15,6 +15,8 @@ type Repository interface {
 	Delete(ctx context.Context, id int64) error
 	SetRented(ctx context.Context, id int64, rented bool) error
 	SetBroken(ctx context.Context, id int64, broken bool) error
+	UpdatePhoto(ctx context.Context, id int64, photoPath string) error
+	ClearPhoto(ctx context.Context, id int64) error
 }
 
 // Usecase — публичный контракт сервиса.
@@ -26,6 +28,8 @@ type Usecase interface {
 	Delete(ctx context.Context, id int64) error
 	SetRented(ctx context.Context, id int64, rented bool) error
 	SetBroken(ctx context.Context, id int64, broken bool) error
+	UploadPhoto(ctx context.Context, id int64, file []byte, filename string) (*bike.Bike, error)
+	DeletePhoto(ctx context.Context, id int64) error
 }
 
 type CreateInput struct {

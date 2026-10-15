@@ -1,0 +1,84 @@
+{{define "content"}}
+<div class="page-header">
+    <h2>Поломки</h2>
+    <button class="btn-action" onclick="openCreateBreakdownForm()">Отметить поломку</button>
+</div>
+
+<!-- Форма (создание / редактирование) -->
+<article id="breakdown-form-container" style="display: none; margin-bottom: 2rem;">
+    <header>
+        <h3 id="breakdown-form-title">Новая поломка</h3>
+    </header>
+
+    <form id="breakdown-form" onsubmit="handleBreakdownFormSubmit(event)">
+        <input type="hidden" id="breakdown-form-id" value="">
+
+        <div class="grid">
+            <label>
+                Велосипед *
+                <select name="bike_id" id="breakdown-form-bike" required>
+                    <option value="">— Выберите велосипед —</option>
+                </select>
+            </label>
+
+            <label>
+                Стоимость ремонта, ₽
+                <input type="number" name="cost" id="breakdown-form-cost" min="0" step="1" value="0">
+            </label>
+        </div>
+
+        <label>
+            Причина поломки *
+            <textarea name="reason" id="breakdown-form-reason" rows="2" required placeholder="Например: прокол колеса"></textarea>
+        </label>
+
+        <label>
+            Комментарий
+            <textarea name="comment" id="breakdown-form-comment" rows="2" placeholder="Заметки"></textarea>
+        </label>
+
+        <div class="form-actions">
+            <button type="submit" id="breakdown-form-submit">Сохранить</button>
+            <button type="button" class="secondary" onclick="closeBreakdownForm()">Отмена</button>
+        </div>
+
+        <div id="breakdown-form-error" style="color: red; margin-top: 1rem; display: none;"></div>
+    </form>
+</article>
+
+<!-- Фильтр: показать только непочиненные -->
+<label style="display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+    <input type="checkbox" id="show-unfixed-only" onchange="loadBreakdowns(getToken())">
+    Только непочиненные
+</label>
+
+<!-- Таблица поломок -->
+<div id="breakdowns-loading">Загрузка...</div>
+<div id="breakdowns-error" style="color: red; display: none;"></div>
+
+<div class="table-wrapper">
+    <table id="breakdowns-table" style="display: none;">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Велосипед</th>
+            <th>Причина</th>
+            <th>Стоимость</th>
+            <th>Дата</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="breakdowns-tbody"></tbody>
+    </table>
+</div>
+
+
+<div id="breakdowns-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+    Нет поломок
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadBreakdownsPage);
+</script>
+{{end}}

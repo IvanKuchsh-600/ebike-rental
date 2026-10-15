@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} — Прокат электровелосипедов</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/app.js"></script>
+</head>
+<body>
+<header class="container">
+    <nav>
+        <ul>
+            <li><strong>Прокат электровелосипедов</strong></li>
+        </ul>
+        <ul id="nav-menu">
+            <!-- Заполняется через JS -->
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    {{template "content" .}}
+</main>
+</body>
+</html>

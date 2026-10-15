@@ -1,0 +1,114 @@
+{{define "content"}}
+<div class="page-header">
+    <h2>Аренды</h2>
+    <button class="btn-action" onclick="openCreateRentalForm()">Сдать велосипед</button>
+</div>
+
+<!-- Форма (создание / редактирование) -->
+<article id="rental-form-container" style="display: none; margin-bottom: 2rem;">
+    <header>
+        <h3 id="rental-form-title">Новая аренда</h3>
+    </header>
+
+    <form id="rental-form" onsubmit="handleRentalFormSubmit(event)">
+        <input type="hidden" id="rental-form-id" value="">
+
+        <div class="grid">
+            <label>
+                Велосипед *
+                <select name="bike_id" id="rental-form-bike" required>
+                    <option value="">— Выберите велосипед —</option>
+                </select>
+            </label>
+
+            <label>
+                Серийный номер
+                <input type="text" id="rental-form-serial-preview" disabled placeholder="—">
+            </label>
+        </div>
+
+        <div class="grid">
+            <label>
+                Имя арендатора *
+                <input type="text" name="renter_name" id="rental-form-name" required placeholder="Ivan">
+            </label>
+
+            <label>
+                Телефон арендатора *
+                <input type="tel" name="renter_phone" id="rental-form-phone" required placeholder="+79991234567">
+            </label>
+        </div>
+
+        <div class="grid">
+            <label>
+                Начало аренды
+                <input type="datetime-local" name="started_at" id="rental-form-started">
+            </label>
+
+            <label>
+                Планируемый возврат *
+                <input type="datetime-local" name="planned_end_at" id="rental-form-end" required>
+            </label>
+        </div>
+
+        <div class="grid">
+            <label>
+                Сумма аренды, ₽ *
+                <input type="number" name="total_amount" id="rental-form-total" min="1" step="1" required placeholder="10000">
+            </label>
+
+            <label>
+                Предоплата, ₽
+                <input type="number" name="prepayment" id="rental-form-prepayment" min="0" step="1" placeholder="0">
+            </label>
+
+            <label>
+                Залог, ₽
+                <input type="number" name="deposit" id="rental-form-deposit" min="0" step="1" placeholder="0">
+            </label>
+        </div>
+
+        <label>
+            Комментарий
+            <textarea name="comment" id="rental-form-comment" rows="2" placeholder="Заметки"></textarea>
+        </label>
+
+        <div class="form-actions">
+            <button type="submit" id="rental-form-submit">Создать аренду</button>
+            <button type="button" class="secondary" onclick="closeRentalForm()">Отмена</button>
+        </div>
+
+        <div id="rental-form-error" style="color: red; margin-top: 1rem; display: none;"></div>
+    </form>
+</article>
+
+<!-- Таблица аренд -->
+<div id="rentals-loading">Загрузка...</div>
+<div id="rentals-error" style="color: red; display: none;"></div>
+<div class="table-wrapper">
+    <table id="rentals-table" style="display: none;">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Велосипед</th>
+            <th>Арендатор</th>
+            <th>Начало</th>
+            <th>Возврат</th>
+            <th>Сумма</th>
+            <th>Оплата</th>
+            <th>Статус</th>
+            <th>Действия</th>
+        </tr>
+        </thead>
+        <tbody id="rentals-tbody"></tbody>
+    </table>
+</div>
+
+<div id="rentals-empty" style="display: none; text-align: center; color: var(--pico-muted-color);">
+    Нет аренд. Создайте первую!
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadRentalsPage);
+</script>
+{{end}}

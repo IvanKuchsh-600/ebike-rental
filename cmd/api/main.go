@@ -22,6 +22,7 @@ import (
 	partnerusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/partner"
 	payoutusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/payout"
 	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
+	webpkg "github.com/IvanKuchsh-600/ebike-rental/internal/web"
 )
 
 func main() {
@@ -67,7 +68,7 @@ func run() error {
 
 	// 5. Usecases
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
-	breakdownSvc := breakdownusecase.NewService(breakdownRepo, logger)
+	breakdownSvc := breakdownusecase.NewService(breakdownRepo, bikeRepo, logger)
 	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
 	payoutSvc := payoutusecase.NewService(payoutRepo, cfg.PartnerShare, logger)
 	partnerSvc := partnerusecase.NewService(
@@ -92,6 +93,8 @@ func run() error {
 		breakdownSvc,
 		payoutSvc,
 	)
+	webRenderer := webpkg.NewRenderer(logger)
+	webHandler := webpkg.NewHandler(webRenderer, logger)
 
 	handlersContainer := &router.Handlers{
 		Bike:      bikeHandler,
@@ -100,6 +103,7 @@ func run() error {
 		Payout:    payoutHandler,
 		Auth:      authHandler,
 		Partner:   partnerHandler,
+		Web:       webHandler,
 	}
 
 	// 7. Router

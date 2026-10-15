@@ -46,3 +46,8 @@ type UpdateInput struct {
 	Cost    *int64
 	Comment *string
 }
+
+// BikeRepository — нужен, чтобы отметить велосипед сломанным.
+type BikeRepository interface {
+	SetBroken(ctx context.Context, id int64, broken bool) error
+}

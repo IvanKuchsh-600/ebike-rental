@@ -20,7 +20,7 @@ services:
   migrate:
     image: migrate/migrate:v4.17.1
     container_name: ebike-migrate
-    restart: "no"   # важно: контейнер не должен перезапускаться
+    restart: "no"
     volumes:
       - ./migrations:/migrations
     command: [
@@ -30,8 +30,28 @@ services:
     ]
     depends_on:
       postgres:
-        condition: service_healthy   # ждём, пока Postgres реально будет готов
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ebike-api
+    restart: unless-stopped
+    environment:
+      APP_PORT: 8080
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      LOG_LEVEL: ${LOG_LEVEL}
+      PARTNER_SHARE: ${PARTNER_SHARE}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   ebike_pgdata:
-

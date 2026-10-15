@@ -1,0 +1,48 @@
+{{define "content"}}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Кабинет партнёра</h2>
+    <span id="user-info" style="color: var(--pico-muted-color);"></span>
+</div>
+
+<!-- Карточки с цифрами -->
+<div class="grid">
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Всего</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-total">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Сдано</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-rented">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Сломано</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-broken">—</p>
+    </article>
+
+    <article style="text-align: center;">
+        <h4 style="margin-bottom: 0.5rem;">Свободно</h4>
+        <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-available">—</p>
+    </article>
+</div>
+
+<!-- Финансовая сводка за месяц -->
+<section style="margin-top: 3rem;">
+    <h3>Доход за <span id="month-label">—</span></h3>
+    <div class="grid">
+        <article style="text-align: center;">
+            <h4 style="margin-bottom: 0.5rem;">Общая выручка</h4>
+            <p style="font-size: 2rem; font-weight: bold; margin: 0;" id="stat-revenue">—</p>
+        </article>
+        <article style="text-align: center;">
+            <h4 style="margin-bottom: 0.5rem;">Ваша доля</h4>
+            <p style="font-size: 2rem; font-weight: bold; margin: 0; color: green;" id="stat-partner-share">—</p>
+        </article>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', loadPartnerDashboard);
+</script>
+{{end}}

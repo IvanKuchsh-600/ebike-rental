@@ -11,14 +11,16 @@ import (
 )
 
 type Service struct {
-	repo   Repository
-	logger *slog.Logger
+	repo     Repository
+	bikeRepo BikeRepository
+	logger   *slog.Logger
 }
 
-func NewService(repo Repository, logger *slog.Logger) *Service {
+func NewService(repo Repository, bikeRepo BikeRepository, logger *slog.Logger) *Service {
 	return &Service{
-		repo:   repo,
-		logger: logger,
+		repo:     repo,
+		bikeRepo: bikeRepo,
+		logger:   logger,
 	}
 }
 
@@ -46,6 +48,12 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*breakdown.Bre
 	if err != nil {
 		s.logger.Error("failed to create breakdown", "bike_id", input.BikeID, "error", err)
 		return nil, fmt.Errorf("create breakdown: %w", err)
+	}
+
+	// Пометить велосипед сломанным (без транзакции)
+	if err := s.bikeRepo.SetBroken(ctx, input.BikeID, true); err != nil {
+		// Логируем, но не падаем — breakdown уже создан
+		s.logger.Error("failed to set bike broken", "bike_id", input.BikeID, "error", err)
 	}
 
 	s.logger.Info("breakdown created", "id", created.ID, "bike_id", created.BikeID)
@@ -140,19 +148,51 @@ func (s *Service) MarkFixed(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: id must be positive", breakdown.ErrInvalidInput)
 	}
 
-	err := s.repo.MarkFixed(ctx, id)
+	// 1. Загружаем breakdown, чтобы узнать bike_id
+	b, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to mark breakdown as fixed", "id", id, "error", err)
+		return err
+	}
+
+	// 2. Помечаем поломку починенной
+	if err := s.repo.MarkFixed(ctx, id); err != nil {
+		s.logger.Error("failed to mark breakdown fixed", "id", id, "error", err)
 		return fmt.Errorf("mark fixed: %w", err)
 	}
 
-	s.logger.Info("breakdown marked as fixed", "id", id)
+	// 3. Освобождаем велосипед (если нет других непочиненных поломок)
+	//    ВАЖНО: может быть несколько поломок на одном велосипеде!
+	hasUnfixed, err := s.hasUnfixedBreakdowns(ctx, b.BikeID)
+	if err != nil {
+		s.logger.Error("failed to check unfixed breakdowns", "bike_id", b.BikeID, "error", err)
+		return fmt.Errorf("check unfixed: %w", err)
+	}
+
+	if !hasUnfixed {
+		if err := s.bikeRepo.SetBroken(ctx, b.BikeID, false); err != nil {
+			s.logger.Error("failed to set bike not broken", "bike_id", b.BikeID, "error", err)
+			// Не падаем — breakdown уже помечен
+		}
+	}
+
+	s.logger.Info("breakdown marked as fixed", "id", id, "bike_id", b.BikeID)
 	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return fmt.Errorf("%w: id must be positive", breakdown.ErrInvalidInput)
+	}
+
+	// Загружаем поломку, чтобы проверить правила
+	b, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Нельзя удалить починенную поломку
+	if b.IsFixed {
+		return breakdown.ErrCannotDeleteFixed
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
@@ -177,4 +217,20 @@ func validateCreateInput(input CreateInput) error {
 		return fmt.Errorf("%w: cost cannot be negative", breakdown.ErrInvalidInput)
 	}
 	return nil
+}
+
+// hasUnfixedBreakdowns — есть ли ещё непочиненные поломки у велосипеда.
+func (s *Service) hasUnfixedBreakdowns(ctx context.Context, bikeID int64) (bool, error) {
+	items, err := s.repo.ListByBike(ctx, bikeID)
+	if err != nil {
+		return false, fmt.Errorf("list by bike: %w", err)
+	}
+
+	for i := range items {
+		if !items[i].IsFixed {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

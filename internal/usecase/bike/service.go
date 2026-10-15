@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
@@ -153,5 +155,103 @@ func validateCreateInput(input CreateInput) error {
 	if strings.TrimSpace(input.SerialNumber) == "" {
 		return fmt.Errorf("%w: serial_number is required", bike.ErrInvalidInput)
 	}
+	return nil
+}
+
+// UploadPhoto — сохраняет фото велосипеда.
+// file — содержимое файла (байты).
+// filename — оригинальное имя (для определения типа).
+func (s *Service) UploadPhoto(ctx context.Context, id int64, file []byte, filename string) (*bike.Bike, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("%w: id must be positive", bike.ErrInvalidInput)
+	}
+
+	// Проверка размера — макс 5 MB
+	const maxSize = 5 * 1024 * 1024
+	if len(file) > maxSize {
+		return nil, fmt.Errorf("%w: file too large (max 5MB)", bike.ErrInvalidInput)
+	}
+
+	// Проверка типа файла по расширению
+	ext := strings.ToLower(filepath.Ext(filename))
+	allowedExts := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".webp": true,
+	}
+	if !allowedExts[ext] {
+		return nil, fmt.Errorf("%w: unsupported file type (allowed: jpg, jpeg, png, webp)", bike.ErrInvalidInput)
+	}
+
+	// Проверяем, что велосипед существует
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Формируем путь: uploads/bikes/{id}{ext}
+	photoPath := fmt.Sprintf("uploads/bikes/%d%s", id, ext)
+
+	// Сохраняем файл на диск
+	if err := os.MkdirAll("uploads/bikes", 0755); err != nil {
+		s.logger.Error("failed to create uploads dir", "error", err)
+		return nil, fmt.Errorf("create uploads dir: %w", err)
+	}
+
+	fullPath := filepath.Join(".", photoPath)
+	if err := os.WriteFile(fullPath, file, 0644); err != nil {
+		s.logger.Error("failed to save photo", "id", id, "error", err)
+		return nil, fmt.Errorf("save photo: %w", err)
+	}
+
+	// Если было старое фото с другим расширением — удаляем
+	if existing.PhotoPath != nil && *existing.PhotoPath != photoPath {
+		oldPath := filepath.Join(".", *existing.PhotoPath)
+		_ = os.Remove(oldPath) // игнорируем ошибку — файла может не быть
+	}
+
+	// Обновляем путь в БД
+	if err := s.repo.UpdatePhoto(ctx, id, photoPath); err != nil {
+		s.logger.Error("failed to update photo path in db", "id", id, "error", err)
+		return nil, fmt.Errorf("update photo in db: %w", err)
+	}
+
+	s.logger.Info("bike photo uploaded", "id", id, "path", photoPath)
+
+	// Возвращаем обновлённый велосипед
+	return s.repo.GetByID(ctx, id)
+}
+
+// DeletePhoto — удаляет фото велосипеда.
+func (s *Service) DeletePhoto(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return fmt.Errorf("%w: id must be positive", bike.ErrInvalidInput)
+	}
+
+	// Загружаем велосипед, чтобы узнать путь
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if existing.PhotoPath == nil {
+		// Фото нет — не ошибка
+		return nil
+	}
+
+	// Удаляем файл с диска
+	oldPath := filepath.Join(".", *existing.PhotoPath)
+	if err := os.Remove(oldPath); err != nil && !os.IsNotExist(err) {
+		s.logger.Warn("failed to remove photo file", "id", id, "path", oldPath, "error", err)
+	}
+
+	// Обновляем БД
+	if err := s.repo.ClearPhoto(ctx, id); err != nil {
+		s.logger.Error("failed to clear photo in db", "id", id, "error", err)
+		return fmt.Errorf("clear photo in db: %w", err)
+	}
+
+	s.logger.Info("bike photo deleted", "id", id)
 	return nil
 }

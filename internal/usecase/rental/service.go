@@ -282,6 +282,22 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 		return fmt.Errorf("%w: id must be positive", rental.ErrInvalidInput)
 	}
 
+	// Загружаем аренду, чтобы проверить правила
+	r, err := s.rentalRepo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Нельзя удалить возвращённую аренду
+	if r.ReturnedAt != nil {
+		return rental.ErrCannotDeleteReturned
+	}
+
+	// Нельзя удалить оплаченную аренду
+	if r.IsPaid {
+		return rental.ErrCannotDeletePaid
+	}
+
 	if err := s.rentalRepo.Delete(ctx, id); err != nil {
 		s.logger.Error("failed to delete rental", "id", id, "error", err)
 		return fmt.Errorf("delete rental: %w", err)

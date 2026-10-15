@@ -10,6 +10,7 @@ import (
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/http/handlers"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/http/middleware"
+	webpkg "github.com/IvanKuchsh-600/ebike-rental/internal/web"
 )
 
 type Handlers struct {
@@ -19,6 +20,7 @@ type Handlers struct {
 	Payout    *handlers.PayoutHandler
 	Auth      *handlers.AuthHandler
 	Partner   *handlers.PartnerHandler
+	Web       *webpkg.Handler // ← новое
 }
 
 type Config struct {
@@ -30,6 +32,29 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 
 	r := gin.New()
 	r.Use(gin.Recovery())
+
+	// Static files
+	r.Static("/static", "./web/static")
+	r.Static("/uploads", "./uploads")
+
+	// Web pages (HTML)
+	web := r.Group("/web")
+	{
+		web.GET("/login", h.Web.LoginPage)
+		web.GET("/dashboard", h.Web.DashboardPage)
+		web.GET("/partner/dashboard", h.Web.PartnerDashboardPage)
+
+		// Временные заглушки (заменим на настоящие страницы)
+		web.GET("/bikes", h.Web.BikesPage)
+		web.GET("/rentals", h.Web.RentalsPage)
+		web.GET("/breakdowns", h.Web.BreakdownsPage)
+		web.GET("/payouts", h.Web.PayoutsPage)
+
+		web.GET("/partner/bikes", h.Web.PartnerBikesPage)
+		web.GET("/partner/rentals", h.Web.PartnerRentalsPage)
+		web.GET("/partner/breakdowns", h.Web.PartnerBreakdownsPage)
+		web.GET("/partner/payouts", h.Web.PartnerPayoutsPage)
+	}
 
 	// ============ Public routes ============
 
@@ -72,6 +97,9 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 
 			bikes.GET("/:id/breakdowns", h.Breakdown.ListByBike)
 			bikes.GET("/:id/rentals", h.Rental.ListByBike)
+
+			bikes.POST("/:id/photo", h.Bike.UploadPhoto)
+			bikes.DELETE("/:id/photo", h.Bike.DeletePhoto)
 		}
 
 		// Breakdowns

@@ -173,6 +173,11 @@ func (h *PayoutHandler) handleError(c *gin.Context, err error) {
 	case errors.Is(err, payout.ErrInvalidInput):
 		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 
+	case errors.Is(err, payout.ErrCannotDeletePaid):
+		c.JSON(http.StatusConflict, ErrorResponse{
+			Error: "Нельзя удалить выплаченную выплату.",
+		})
+
 	default:
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 	}

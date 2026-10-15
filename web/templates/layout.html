@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}} — Прокат электровелосипедов</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="/static/app.css">
+    <script src="/static/htmx.min.js"></script>
+    <script src="/static/app.js"></script>
+</head>
+<body>
+<header class="container">
+    <nav class="app-nav">
+        <div class="app-nav-brand">
+            <strong>Прокат электровелосипедов</strong>
+        </div>
+
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Меню">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <ul id="nav-menu" class="app-nav-menu">
+            <!-- Заполняется через JS -->
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
+    {{template "content" .}}
+</main>
+</body>
+</html>
