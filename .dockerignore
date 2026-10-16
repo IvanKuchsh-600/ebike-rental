@@ -2,8 +2,10 @@
 .env
 *.exe
 bin/
-*.md
+build/
+deploy/
+uploads/
+*.zip
+TODO.md
 .vscode/
 .idea/
-api.ps1
-TODO.md
