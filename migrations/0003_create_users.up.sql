@@ -7,10 +7,7 @@ CREATE TABLE users (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT chk_role CHECK (ro
-
-
-        le IN ('owner', 'partner'))
+    CONSTRAINT chk_role CHECK (role IN ('owner', 'partner'))
 );
 
 CREATE INDEX idx_users_email ON users(email);
