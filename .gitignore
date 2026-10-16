@@ -45,3 +45,5 @@ uploads/
 
 # TODO (личные заметки)
 TODO.md
+
+docker-compose.override.yml
