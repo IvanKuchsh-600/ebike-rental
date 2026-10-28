@@ -51,9 +51,10 @@ type RentalsStats struct {
 }
 
 type MonthStats struct {
-	Month        string    // YYYY-MM
-	PeriodStart  time.Time // начало периода
-	PeriodEnd    time.Time // конец периода (полуоткрытый: не включается)
-	Revenue      int64
-	PartnerShare int64
+	Month             string    // YYYY-MM
+	PeriodStart       time.Time // начало периода
+	PeriodEnd         time.Time // конец периода (полуоткрытый: не включается)
+	Revenue           int64
+	PartnerShare      int64
+	AmortizationShare int64
 }

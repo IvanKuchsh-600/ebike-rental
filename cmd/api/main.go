@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"errors"
-	"github.com/IvanKuchsh-600/ebike-rental/internal/auth"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/IvanKuchsh-600/ebike-rental/internal/auth"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/config"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/http/handlers"
@@ -70,12 +71,19 @@ func run() error {
 	bikeSvc := bikeusecase.NewService(bikeRepo, logger)
 	breakdownSvc := breakdownusecase.NewService(breakdownRepo, bikeRepo, logger)
 	rentalSvc := rentalusecase.NewService(rentalRepo, bikeRepo, rentalTransactor, logger)
-	payoutSvc := payoutusecase.NewService(payoutRepo, cfg.PartnerShare, logger)
+	payoutSvc := payoutusecase.NewService(
+		payoutRepo,
+		cfg.OwnerShare,
+		cfg.PartnerShare,
+		cfg.AmortizationShare,
+		logger,
+	)
 	partnerSvc := partnerusecase.NewService(
 		bikeRepo,
 		rentalRepo,
 		payoutRepo,
 		cfg.PartnerShare,
+		cfg.AmortizationShare,
 		logger,
 	)
 	authSvc := authusecase.NewService(userRepo, tokenGen, logger)

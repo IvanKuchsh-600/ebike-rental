@@ -17,37 +17,42 @@ type CreatePayoutRequest struct {
 // ============ Response DTOs ============
 
 type PayoutResponse struct {
-	ID           int64      `json:"id"`
-	PeriodStart  time.Time  `json:"period_start"`
-	PeriodEnd    time.Time  `json:"period_end"`
-	TotalRevenue int64      `json:"total_revenue"`
-	PartnerShare int64      `json:"partner_share"`
-	IsPaid       bool       `json:"is_paid"`
-	PaidAt       *time.Time `json:"paid_at"`
-	Comment      *string    `json:"comment"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID                int64      `json:"id"`
+	PeriodStart       time.Time  `json:"period_start"`
+	PeriodEnd         time.Time  `json:"period_end"`
+	TotalRevenue      int64      `json:"total_revenue"`
+	OwnerShare        int64      `json:"owner_share"`
+	PartnerShare      int64      `json:"partner_share"`
+	AmortizationShare int64      `json:"amortization_share"`
+	IsPaid            bool       `json:"is_paid"`
+	PaidAt            *time.Time `json:"paid_at"`
+	Comment           *string    `json:"comment"`
+	CreatedAt         time.Time  `json:"created_at"`
 }
 
 type PayoutPreviewResponse struct {
-	PeriodStart  time.Time `json:"period_start"`
-	PeriodEnd    time.Time `json:"period_end"`
-	TotalRevenue int64     `json:"total_revenue"`
-	PartnerShare int64     `json:"partner_share"`
+	PeriodStart       time.Time `json:"period_start"`
+	PeriodEnd         time.Time `json:"period_end"`
+	TotalRevenue      int64     `json:"total_revenue"`
+	PartnerShare      int64     `json:"partner_share"`
+	AmortizationShare int64     `json:"amortization_share"`
 }
 
 // ============ Mappers ============
 
 func toPayoutResponse(p *payout.Payout) PayoutResponse {
 	return PayoutResponse{
-		ID:           p.ID,
-		PeriodStart:  p.PeriodStart,
-		PeriodEnd:    p.PeriodEnd,
-		TotalRevenue: p.TotalRevenue,
-		PartnerShare: p.PartnerShare,
-		IsPaid:       p.IsPaid,
-		PaidAt:       p.PaidAt,
-		Comment:      p.Comment,
-		CreatedAt:    p.CreatedAt,
+		ID:                p.ID,
+		PeriodStart:       p.PeriodStart,
+		PeriodEnd:         p.PeriodEnd,
+		TotalRevenue:      p.TotalRevenue,
+		OwnerShare:        p.OwnerShare,
+		PartnerShare:      p.PartnerShare,
+		AmortizationShare: p.AmortizationShare,
+		IsPaid:            p.IsPaid,
+		PaidAt:            p.PaidAt,
+		Comment:           p.Comment,
+		CreatedAt:         p.CreatedAt,
 	}
 }
 
@@ -61,10 +66,11 @@ func toPayoutResponseList(items []payout.Payout) []PayoutResponse {
 
 func toPayoutPreviewResponse(r *payoutusecase.PreviewResult) PayoutPreviewResponse {
 	return PayoutPreviewResponse{
-		PeriodStart:  r.PeriodStart,
-		PeriodEnd:    r.PeriodEnd,
-		TotalRevenue: r.TotalRevenue,
-		PartnerShare: r.PartnerShare,
+		PeriodStart:       r.PeriodStart,
+		PeriodEnd:         r.PeriodEnd,
+		TotalRevenue:      r.TotalRevenue,
+		PartnerShare:      r.PartnerShare,
+		AmortizationShare: r.AmortizationShare,
 	}
 }
 

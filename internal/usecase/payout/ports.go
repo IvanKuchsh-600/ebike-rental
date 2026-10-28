@@ -28,12 +28,13 @@ type Usecase interface {
 	Delete(ctx context.Context, id int64) error
 }
 
-// PreviewResult — результат preview (не сохраняется).
 type PreviewResult struct {
-	PeriodStart  time.Time
-	PeriodEnd    time.Time
-	TotalRevenue int64
-	PartnerShare int64
+	PeriodStart       time.Time
+	PeriodEnd         time.Time
+	TotalRevenue      int64
+	OwnerShare        int64
+	PartnerShare      int64
+	AmortizationShare int64
 }
 
 // CreateInput — данные для фиксации выплаты.

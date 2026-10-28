@@ -340,6 +340,12 @@ async function loadPartnerDashboard() {
         document.getElementById('month-label').textContent = data.current_month.month;
         document.getElementById('stat-revenue').textContent = formatMoney(data.current_month.revenue);
         document.getElementById('stat-partner-share').textContent = formatMoney(data.current_month.partner_share);
+
+        // ДОБАВЛЯЕМ АМОРТИЗАЦИЮ:
+        const amortizationEl = document.getElementById('stat-amortization');
+        if (amortizationEl) {
+            amortizationEl.textContent = formatMoney(data.current_month.amortization_share);
+        }
     } catch (err) {
         console.error('Failed to load partner dashboard:', err);
         alert('Ошибка загрузки данных: ' + err.message);
@@ -902,6 +908,11 @@ async function loadPreview() {
         errorDiv.textContent = 'Ошибка сети: ' + err.message;
         errorDiv.style.display = 'block';
     }
+
+    document.getElementById('preview-revenue').textContent = formatMoney(data.total_revenue);
+    document.getElementById('preview-owner').textContent = formatMoney(data.owner_share);
+    document.getElementById('preview-share').textContent = formatMoney(data.partner_share);
+    document.getElementById('preview-amortization').textContent = formatMoney(data.amortization_share);
 }
 
 async function fixPayout() {
@@ -1013,7 +1024,9 @@ async function loadPayouts(token) {
                 <td>${p.id}</td>
                 <td>${period}</td>
                 <td>${formatMoney(p.total_revenue)}</td>
+                <td>${formatMoney(p.owner_share)}</td>
                 <td><strong style="color: green;">${formatMoney(p.partner_share)}</strong></td>
+                <td>${formatMoney(p.amortization_share)}</td>
                 <td>${statusBadge}</td>
                 <td style="white-space: nowrap;"><div class="actions-cell">${actionButton}</div></td>
             `;

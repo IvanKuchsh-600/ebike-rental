@@ -22,17 +22,24 @@
 
     <div id="preview-result" style="display: none; margin-top: 1rem;">
         <div class="grid">
-            <div style="text-align: center; padding: 1rem; background: var(--pico-card-background-color);">
+            <div style="text-align: center; padding: 1rem;">
                 <h4 style="margin-bottom: 0.5rem;">Общая выручка</h4>
                 <p style="font-size: 1.8rem; font-weight: bold; margin: 0;" id="preview-revenue">—</p>
             </div>
-            <div style="text-align: center; padding: 1rem; background: var(--pico-card-background-color);">
-                <h4 style="margin-bottom: 0.5rem;">Доля партнёра</h4>
-                <p style="font-size: 1.8rem; font-weight: bold; margin: 0; color: green;" id="preview-share">—</p>
+            <div style="text-align: center; padding: 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">Ваша доля (40%)</h4>
+                <p style="font-size: 1.8rem; font-weight: bold; margin: 0; color: #2980b9;" id="preview-owner">—</p>
+            </div>
+            <div style="text-align: center; padding: 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">Доля партнёра (40%)</h4>
+                <p style="font-size: 1.8rem; font-weight: bold; margin: 0; color: #27ae60;" id="preview-share">—</p>
+            </div>
+            <div style="text-align: center; padding: 1rem;">
+                <h4 style="margin-bottom: 0.5rem;">Амортизация (20%)</h4>
+                <p style="font-size: 1.8rem; font-weight: bold; margin: 0; color: #e67e22;" id="preview-amortization">—</p>
             </div>
         </div>
-
-        <button class="btn-action" onclick="fixPayout()" style="margin-top: 1rem;">Зафиксировать выплату</button>
+        <button onclick="fixPayout()" style="margin-top: 1rem;">Зафиксировать выплату</button>
         <div id="preview-fix-error" style="color: red; margin-top: 0.5rem; display: none;"></div>
     </div>
 </article>
@@ -51,7 +58,9 @@
                 <th>ID</th>
                 <th>Период</th>
                 <th>Выручка</th>
-                <th>Доля партнёра</th>
+                <th>Ваша доля</th>
+                <th>Партнёру</th>
+                <th>Амортизация</th>
                 <th>Статус</th>
                 <th>Действия</th>
             </tr>

@@ -28,20 +28,24 @@ func NewPayoutRepository(pool *pgxpool.Pool, logger *slog.Logger) *PayoutReposit
 
 func (r *PayoutRepository) Create(ctx context.Context, p *payout.Payout) (*payout.Payout, error) {
 	query := `
-		INSERT INTO payouts (period_start, period_end, total_revenue, partner_share, is_paid, paid_at, comment)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, period_start, period_end, total_revenue, partner_share, is_paid, paid_at, comment, created_at
+		INSERT INTO payouts (period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
 	`
 
 	var created payout.Payout
 	err := r.db.QueryRow(ctx, query,
-		p.PeriodStart, p.PeriodEnd, p.TotalRevenue, p.PartnerShare, p.IsPaid, p.PaidAt, p.Comment,
+		p.PeriodStart, p.PeriodEnd, p.TotalRevenue,
+		p.OwnerShare, p.PartnerShare, p.AmortizationShare,
+		p.IsPaid, p.PaidAt, p.Comment,
 	).Scan(
 		&created.ID,
 		&created.PeriodStart,
 		&created.PeriodEnd,
 		&created.TotalRevenue,
+		&created.OwnerShare,
 		&created.PartnerShare,
+		&created.AmortizationShare,
 		&created.IsPaid,
 		&created.PaidAt,
 		&created.Comment,
@@ -59,7 +63,7 @@ func (r *PayoutRepository) Create(ctx context.Context, p *payout.Payout) (*payou
 
 func (r *PayoutRepository) GetByID(ctx context.Context, id int64) (*payout.Payout, error) {
 	query := `
-		SELECT id, period_start, period_end, total_revenue, partner_share, is_paid, paid_at, comment, created_at
+		SELECT id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
 		FROM payouts
 		WHERE id = $1
 	`
@@ -70,7 +74,9 @@ func (r *PayoutRepository) GetByID(ctx context.Context, id int64) (*payout.Payou
 		&p.PeriodStart,
 		&p.PeriodEnd,
 		&p.TotalRevenue,
+		&p.OwnerShare,
 		&p.PartnerShare,
+		&p.AmortizationShare,
 		&p.IsPaid,
 		&p.PaidAt,
 		&p.Comment,
@@ -89,7 +95,7 @@ func (r *PayoutRepository) GetByID(ctx context.Context, id int64) (*payout.Payou
 
 func (r *PayoutRepository) List(ctx context.Context) ([]payout.Payout, error) {
 	query := `
-		SELECT id, period_start, period_end, total_revenue, partner_share, is_paid, paid_at, comment, created_at
+		SELECT id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
 		FROM payouts
 		ORDER BY period_start DESC
 	`
@@ -109,7 +115,9 @@ func (r *PayoutRepository) List(ctx context.Context) ([]payout.Payout, error) {
 			&p.PeriodStart,
 			&p.PeriodEnd,
 			&p.TotalRevenue,
+			&p.OwnerShare,
 			&p.PartnerShare,
+			&p.AmortizationShare,
 			&p.IsPaid,
 			&p.PaidAt,
 			&p.Comment,

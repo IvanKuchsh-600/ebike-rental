@@ -9,11 +9,12 @@ import (
 )
 
 type Service struct {
-	bikeRepo        BikeRepository
-	rentalRepo      RentalRepository
-	revenueProvider RevenueProvider
-	partnerShare    float64
-	logger          *slog.Logger
+	bikeRepo          BikeRepository
+	rentalRepo        RentalRepository
+	revenueProvider   RevenueProvider
+	partnerShare      float64
+	amortizationShare float64
+	logger            *slog.Logger
 }
 
 func NewService(
@@ -21,14 +22,16 @@ func NewService(
 	rentalRepo RentalRepository,
 	revenueProvider RevenueProvider,
 	partnerShare float64,
+	amortizationShare float64,
 	logger *slog.Logger,
 ) *Service {
 	return &Service{
-		bikeRepo:        bikeRepo,
-		rentalRepo:      rentalRepo,
-		revenueProvider: revenueProvider,
-		partnerShare:    partnerShare,
-		logger:          logger,
+		bikeRepo:          bikeRepo,
+		rentalRepo:        rentalRepo,
+		revenueProvider:   revenueProvider,
+		partnerShare:      partnerShare,
+		amortizationShare: amortizationShare,
+		logger:            logger,
 	}
 }
 
@@ -81,6 +84,7 @@ func (s *Service) Dashboard(ctx context.Context, month string) (*DashboardResult
 	}
 
 	partnerShare := int64(float64(revenue) * s.partnerShare)
+	amortizationShare := int64(float64(revenue) * s.amortizationShare)
 
 	s.logger.Info("partner dashboard calculated",
 		"month", monthKey,
@@ -93,11 +97,12 @@ func (s *Service) Dashboard(ctx context.Context, month string) (*DashboardResult
 		Bikes:   bikesStats,
 		Rentals: rentalsStats,
 		CurrentMonth: MonthStats{
-			Month:        monthKey,
-			PeriodStart:  periodStart,
-			PeriodEnd:    periodEnd,
-			Revenue:      revenue,
-			PartnerShare: partnerShare,
+			Month:             monthKey,
+			PeriodStart:       periodStart,
+			PeriodEnd:         periodEnd,
+			Revenue:           revenue,
+			PartnerShare:      partnerShare,
+			AmortizationShare: amortizationShare,
 		},
 	}, nil
 }

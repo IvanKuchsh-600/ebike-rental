@@ -11,16 +11,24 @@ import (
 )
 
 type Service struct {
-	repo         Repository
-	partnerShare float64 // например, 0.10
-	logger       *slog.Logger
+	repo              Repository
+	ownerShare        float64
+	partnerShare      float64
+	amortizationShare float64
+	logger            *slog.Logger
 }
 
-func NewService(repo Repository, partnerShare float64, logger *slog.Logger) *Service {
+func NewService(
+	repo Repository,
+	ownerShare, partnerShare, amortizationShare float64,
+	logger *slog.Logger,
+) *Service {
 	return &Service{
-		repo:         repo,
-		partnerShare: partnerShare,
-		logger:       logger,
+		repo:              repo,
+		ownerShare:        ownerShare,
+		partnerShare:      partnerShare,
+		amortizationShare: amortizationShare,
+		logger:            logger,
 	}
 }
 
@@ -39,19 +47,23 @@ func (s *Service) Preview(ctx context.Context, month string) (*PreviewResult, er
 		return nil, fmt.Errorf("calculate revenue: %w", err)
 	}
 
-	partnerShare := calculatePartnerShare(revenue, s.partnerShare)
+	owner, partner, amortization := s.calculateShares(revenue)
 
 	s.logger.Info("payout preview calculated",
 		"month", month,
 		"revenue", revenue,
-		"partner_share", partnerShare,
+		"owner_share", owner,
+		"partner_share", partner,
+		"amortization_share", amortization,
 	)
 
 	return &PreviewResult{
-		PeriodStart:  periodStart,
-		PeriodEnd:    periodEnd,
-		TotalRevenue: revenue,
-		PartnerShare: partnerShare,
+		PeriodStart:       periodStart,
+		PeriodEnd:         periodEnd,
+		TotalRevenue:      revenue,
+		OwnerShare:        owner,
+		PartnerShare:      partner,
+		AmortizationShare: amortization,
 	}, nil
 }
 
@@ -64,37 +76,34 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*payout.Payout
 		return nil, err
 	}
 
-	// Проверить, что payout за этот период ещё нет
 	exists, err := s.repo.ExistsForPeriod(ctx, periodStart, periodEnd)
 	if err != nil {
-		s.logger.Error("failed to check payout existence", "month", input.Month, "error", err)
 		return nil, fmt.Errorf("check payout existence: %w", err)
 	}
 	if exists {
 		return nil, payout.ErrAlreadyExists
 	}
 
-	// Посчитать выручку
 	revenue, err := s.repo.CalculateRevenue(ctx, periodStart, periodEnd)
 	if err != nil {
-		s.logger.Error("failed to calculate revenue", "month", input.Month, "error", err)
 		return nil, fmt.Errorf("calculate revenue: %w", err)
 	}
 
-	partnerShare := calculatePartnerShare(revenue, s.partnerShare)
+	owner, partner, amortization := s.calculateShares(revenue)
 
 	p := &payout.Payout{
-		PeriodStart:  periodStart,
-		PeriodEnd:    periodEnd,
-		TotalRevenue: revenue,
-		PartnerShare: partnerShare,
-		IsPaid:       false,
-		Comment:      input.Comment,
+		PeriodStart:       periodStart,
+		PeriodEnd:         periodEnd,
+		TotalRevenue:      revenue,
+		OwnerShare:        owner,
+		PartnerShare:      partner,
+		AmortizationShare: amortization,
+		IsPaid:            false,
+		Comment:           input.Comment,
 	}
 
 	created, err := s.repo.Create(ctx, p)
 	if err != nil {
-		s.logger.Error("failed to create payout", "month", input.Month, "error", err)
 		return nil, fmt.Errorf("create payout: %w", err)
 	}
 
@@ -102,7 +111,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*payout.Payout
 		"id", created.ID,
 		"month", input.Month,
 		"revenue", created.TotalRevenue,
+		"owner_share", created.OwnerShare,
 		"partner_share", created.PartnerShare,
+		"amortization_share", created.AmortizationShare,
 	)
 	return created, nil
 }
@@ -204,4 +215,13 @@ func parseMonth(month string) (periodStart, periodEnd time.Time, err error) {
 // calculatePartnerShare — 10% от выручки, округление до целого рубля.
 func calculatePartnerShare(revenue int64, share float64) int64 {
 	return int64(float64(revenue) * share)
+}
+
+// calculateShares — разбивает выручку на три доли.
+// Округление вниз для owner и partner, остаток идёт в амортизацию.
+func (s *Service) calculateShares(revenue int64) (owner, partner, amortization int64) {
+	owner = int64(float64(revenue) * s.ownerShare)
+	partner = int64(float64(revenue) * s.partnerShare)
+	amortization = revenue - owner - partner // остаток
+	return
 }

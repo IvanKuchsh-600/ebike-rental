@@ -32,11 +32,12 @@ type PartnerRentalsStats struct {
 }
 
 type PartnerCurrentMonthStats struct {
-	Month        string    `json:"month"`
-	PeriodStart  time.Time `json:"period_start"`
-	PeriodEnd    time.Time `json:"period_end"`
-	Revenue      int64     `json:"revenue"`
-	PartnerShare int64     `json:"partner_share"`
+	Month             string    `json:"month"`
+	PeriodStart       time.Time `json:"period_start"`
+	PeriodEnd         time.Time `json:"period_end"`
+	Revenue           int64     `json:"revenue"`
+	PartnerShare      int64     `json:"partner_share"`
+	AmortizationShare int64     `json:"amortization_share"`
 }
 
 func toPartnerDashboardResponse(r *partnerusecase.DashboardResult) PartnerDashboardResponse {
@@ -52,11 +53,12 @@ func toPartnerDashboardResponse(r *partnerusecase.DashboardResult) PartnerDashbo
 			Overdue: r.Rentals.Overdue,
 		},
 		CurrentMonth: PartnerCurrentMonthStats{
-			Month:        r.CurrentMonth.Month,
-			PeriodStart:  r.CurrentMonth.PeriodStart,
-			PeriodEnd:    r.CurrentMonth.PeriodEnd,
-			Revenue:      r.CurrentMonth.Revenue,
-			PartnerShare: r.CurrentMonth.PartnerShare,
+			Month:             r.CurrentMonth.Month,
+			PeriodStart:       r.CurrentMonth.PeriodStart,
+			PeriodEnd:         r.CurrentMonth.PeriodEnd,
+			Revenue:           r.CurrentMonth.Revenue,
+			PartnerShare:      r.CurrentMonth.PartnerShare,
+			AmortizationShare: r.CurrentMonth.AmortizationShare,
 		},
 	}
 }
