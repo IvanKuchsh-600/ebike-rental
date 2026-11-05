@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgconn"
 	"log/slog"
+
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
 	"github.com/jackc/pgx/v5"
@@ -26,20 +27,24 @@ func NewBikeRepository(pool *pgxpool.Pool, logger *slog.Logger) *BikeRepository 
 
 func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, error) {
 	query := `
-		INSERT INTO bikes (serial_number, model, comment)
-		VALUES ($1, $2, $3)
-		RETURNING id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+		INSERT INTO bikes (serial_number, model, comment, status)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, serial_number, model, status, comment, photo_path, photo_updated_at, created_at
 	`
+
+	status := b.Status
+	if status == "" {
+		status = "available" // или bike.StatusAvailable, если у вас есть константа
+	}
 
 	var created bike.Bike
 	err := r.db.QueryRow(ctx, query,
-		b.SerialNumber, b.Model, b.Comment,
+		b.SerialNumber, b.Model, b.Comment, b.Status,
 	).Scan(
 		&created.ID,
 		&created.SerialNumber,
 		&created.Model,
-		&created.IsRented,
-		&created.IsBroken,
+		&created.Status,
 		&created.Comment,
 		&created.PhotoPath,
 		&created.PhotoUpdatedAt,
@@ -55,7 +60,7 @@ func (r *BikeRepository) Create(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 
 func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, error) {
 	query := `
-		SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+		SELECT id, serial_number, model, status, comment, photo_path, photo_updated_at, created_at
 		FROM bikes
 		WHERE id = $1
 	`
@@ -65,8 +70,7 @@ func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, err
 		&b.ID,
 		&b.SerialNumber,
 		&b.Model,
-		&b.IsRented,
-		&b.IsBroken,
+		&b.Status,
 		&b.Comment,
 		&b.PhotoPath,
 		&b.PhotoUpdatedAt,
@@ -85,7 +89,7 @@ func (r *BikeRepository) GetByID(ctx context.Context, id int64) (*bike.Bike, err
 
 func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 	query := `
-        SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+        SELECT id, serial_number, model, status, comment, photo_path, photo_updated_at, created_at
         FROM bikes
         ORDER BY id ASC
     `
@@ -105,8 +109,7 @@ func (r *BikeRepository) List(ctx context.Context) ([]bike.Bike, error) {
 			&b.ID,
 			&b.SerialNumber,
 			&b.Model,
-			&b.IsRented,
-			&b.IsBroken,
+			&b.Status,
 			&b.Comment,
 			&b.PhotoPath,
 			&b.PhotoUpdatedAt,
@@ -132,7 +135,7 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 		UPDATE bikes
 		SET serial_number = $1, model = $2, comment = $3
 		WHERE id = $4
-		RETURNING id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+		RETURNING id, serial_number, model, status, comment, photo_path, photo_updated_at, created_at
 	`
 
 	var updated bike.Bike
@@ -142,8 +145,7 @@ func (r *BikeRepository) Update(ctx context.Context, b *bike.Bike) (*bike.Bike, 
 		&updated.ID,
 		&updated.SerialNumber,
 		&updated.Model,
-		&updated.IsRented,
-		&updated.IsBroken,
+		&updated.Status,
 		&updated.Comment,
 		&updated.PhotoPath,
 		&updated.PhotoUpdatedAt,
@@ -176,47 +178,60 @@ func (r *BikeRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// SetRented — отметить велосипед как сданный/возвращённый.
-func (r *BikeRepository) SetRented(ctx context.Context, id int64, rented bool) error {
-	result, err := r.db.Exec(ctx,
-		"UPDATE bikes SET is_rented = $1 WHERE id = $2",
-		rented, id,
-	)
+func (r *BikeRepository) UpdateStatus(ctx context.Context, id int64, status string) error {
+	query := `UPDATE bikes SET status = $1 WHERE id = $2`
+	result, err := r.db.Exec(ctx, query, status, id)
 	if err != nil {
-		r.logger.Error("failed to set rented", "id", id, "error", err)
-		return fmt.Errorf("set rented: %w", err)
+		r.logger.Error("failed to update bike status", "id", id, "status", status, "error", err)
+		return fmt.Errorf("update status: %w", err)
 	}
-
 	if result.RowsAffected() == 0 {
 		return bike.ErrNotFound
 	}
-
 	return nil
 }
+
+// SetRented — отметить велосипед как сданный/возвращённый.
+//func (r *BikeRepository) SetRented(ctx context.Context, id int64, rented bool) error {
+//	result, err := r.db.Exec(ctx,
+//		"UPDATE bikes SET is_rented = $1 WHERE id = $2",
+//		rented, id,
+//	)
+//	if err != nil {
+//		r.logger.Error("failed to set rented", "id", id, "error", err)
+//		return fmt.Errorf("set rented: %w", err)
+//	}
+//
+//	if result.RowsAffected() == 0 {
+//		return bike.ErrNotFound
+//	}
+//
+//	return nil
+//}
 
 // SetBroken — отметить велосипед как сломанный/починенный.
-func (r *BikeRepository) SetBroken(ctx context.Context, id int64, broken bool) error {
-	result, err := r.db.Exec(ctx,
-		"UPDATE bikes SET is_broken = $1 WHERE id = $2",
-		broken, id,
-	)
-	if err != nil {
-		r.logger.Error("failed to set broken", "id", id, "error", err)
-		return fmt.Errorf("set broken: %w", err)
-	}
-
-	if result.RowsAffected() == 0 {
-		return bike.ErrNotFound
-	}
-
-	return nil
-}
+//func (r *BikeRepository) SetBroken(ctx context.Context, id int64, broken bool) error {
+//	result, err := r.db.Exec(ctx,
+//		"UPDATE bikes SET is_broken = $1 WHERE id = $2",
+//		broken, id,
+//	)
+//	if err != nil {
+//		r.logger.Error("failed to set broken", "id", id, "error", err)
+//		return fmt.Errorf("set broken: %w", err)
+//	}
+//
+//	if result.RowsAffected() == 0 {
+//		return bike.ErrNotFound
+//	}
+//
+//	return nil
+//}
 
 // GetByIDForUpdate — SELECT ... FOR UPDATE, блокирует строку на время транзакции.
 // Вне транзакции использовать НЕЛЬЗЯ (pgx вернёт ошибку).
 func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.Bike, error) {
 	query := `
-		SELECT id, serial_number, model, is_rented, is_broken, comment, photo_path, photo_updated_at, created_at
+		SELECT id, serial_number, model, status, comment, photo_path, photo_updated_at, created_at
 		FROM bikes
 		WHERE id = $1
 		FOR UPDATE
@@ -225,7 +240,7 @@ func (r *BikeRepository) GetByIDForUpdate(ctx context.Context, id int64) (*bike.
 	var b bike.Bike
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&b.ID, &b.SerialNumber, &b.Model,
-		&b.IsRented, &b.IsBroken, &b.Comment, &b.PhotoPath, &b.PhotoUpdatedAt, &b.CreatedAt,
+		&b.Status, &b.Comment, &b.PhotoPath, &b.PhotoUpdatedAt, &b.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

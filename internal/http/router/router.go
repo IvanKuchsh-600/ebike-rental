@@ -100,6 +100,8 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 
 			bikes.POST("/:id/photo", h.Bike.UploadPhoto)
 			bikes.DELETE("/:id/photo", h.Bike.DeletePhoto)
+
+			bikes.PATCH("/:id/status", h.Bike.ChangeStatus)
 		}
 
 		// Breakdowns
@@ -125,8 +127,13 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 			rentals.GET("/:id", h.Rental.GetByID)
 			rentals.PUT("/:id", h.Rental.Update)
 			rentals.POST("/:id/return", h.Rental.Return)
+			rentals.POST("/:id/cancel-return", h.Rental.CancelReturn)
+
 			rentals.POST("/:id/pay", h.Rental.MarkPaid)
 			rentals.DELETE("/:id", h.Rental.Delete)
+
+			rentals.PATCH("/:id/payment", h.Rental.ChangePaymentStatus)
+			rentals.PATCH("/:id/deposit", h.Rental.ReturnDeposit)
 		}
 
 		// Payouts

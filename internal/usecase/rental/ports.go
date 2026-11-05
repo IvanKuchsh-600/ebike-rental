@@ -20,11 +20,15 @@ type Repository interface {
 	MarkReturned(ctx context.Context, id int64) error
 	MarkPaid(ctx context.Context, id int64) error
 	Delete(ctx context.Context, id int64) error
+
+	SetPaid(ctx context.Context, id int64, isPaid bool) error
+	SetDepositReturned(ctx context.Context, id int64, returned bool) error
+	CancelReturn(ctx context.Context, id int64) error
 }
 
 type BikeRepository interface {
 	GetByIDForUpdate(ctx context.Context, id int64) (*bike.Bike, error)
-	SetRented(ctx context.Context, id int64, rented bool) error
+	UpdateStatus(ctx context.Context, id int64, status string) error
 }
 
 // ============ Transactor ============
@@ -55,6 +59,10 @@ type Usecase interface {
 	Return(ctx context.Context, id int64) (*rental.Rental, error)
 	MarkPaid(ctx context.Context, id int64) (*rental.Rental, error)
 	Delete(ctx context.Context, id int64) error
+
+	ChangePaymentStatus(ctx context.Context, id int64, isPaid bool) (*rental.Rental, error)
+	ReturnDeposit(ctx context.Context, id int64, returned bool) (*rental.Rental, error)
+	CancelReturn(ctx context.Context, id int64) (*rental.Rental, error)
 }
 
 // ============ DTOs ============
@@ -76,5 +84,7 @@ type UpdateInput struct {
 	RenterPhone  *string
 	PlannedEndAt *time.Time
 	TotalAmount  *int64
+	Prepayment   *int64 // <-- ДОБАВИТЬ
+	Deposit      *int64 // <-- ДОБАВИТЬ
 	Comment      *string
 }

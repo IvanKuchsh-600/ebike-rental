@@ -49,5 +49,5 @@ type UpdateInput struct {
 
 // BikeRepository — нужен, чтобы отметить велосипед сломанным.
 type BikeRepository interface {
-	SetBroken(ctx context.Context, id int64, broken bool) error
+	UpdateStatus(ctx context.Context, id int64, status string) error
 }

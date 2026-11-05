@@ -195,14 +195,17 @@ async function loadBikes(token, showActions = false) {
         for (const bike of bikes) {
             const row = document.createElement('tr');
 
-            let statusBadge = '';
-            if (bike.is_broken) {
-                statusBadge = '<span style="color: #c0392b; font-weight: 600;">Сломан</span>';
-            } else if (bike.is_rented) {
-                statusBadge = '<span style="color: #e67e22; font-weight: 600;">Сдан</span>';
-            } else {
-                statusBadge = '<span style="color: #27ae60; font-weight: 600;">Свободен</span>';
-            }
+            // Генерируем селект для статуса
+            const statusSelect = `
+                <select class="status-select status-${bike.status}" 
+                        onchange="changeBikeStatus(${bike.id}, this.value)" 
+                        ${showActions ? '' : 'disabled'}>
+                    <option value="available" ${bike.status === 'available' ? 'selected' : ''}>Свободен</option>
+                    <option value="rented" ${bike.status === 'rented' ? 'selected' : ''} ${bike.status === 'rented' ? 'disabled' : ''}>Сдан</option>
+                    <option value="broken" ${bike.status === 'broken' ? 'selected' : ''}>Сломан</option>
+                    <option value="assembly" ${bike.status === 'assembly' ? 'selected' : ''}>Сборка</option>
+                </select>
+            `;
 
             // Кнопки действий — только если showActions = true
             let actionsCell = '';
@@ -229,7 +232,7 @@ async function loadBikes(token, showActions = false) {
                 <td>${bike.id}</td>
                 <td>${escapeHtml(bike.serial_number)}</td>
                 <td>${escapeHtml(bike.model || '—')}</td>
-                <td>${statusBadge}</td>
+                <td>${statusSelect}</td>
                 ${actionsCell}
             `;
             tbody.appendChild(row);
@@ -239,6 +242,40 @@ async function loadBikes(token, showActions = false) {
         errorDiv.textContent = 'Ошибка: ' + err.message;
         errorDiv.style.display = 'block';
         console.error('Failed to load bikes:', err);
+    }
+}
+
+async function changeBikeStatus(id, newStatus) {
+    const token = getToken();
+    try {
+        const response = await fetch(`/bikes/${id}/status`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка смены статуса: ' + (err.error || response.status));
+            // Если ошибка — перезагружаем таблицу, чтобы вернуть старый статус в селекте
+            loadBikes(token, true);
+            return;
+        }
+
+        // Меняем цвет селекта на лету
+        const selectEl = document.querySelector(`select[onchange*="changeBikeStatus(${id},"]`);
+        if (selectEl) {
+            selectEl.className = `status-select status-${newStatus}`;
+        }
+
+        // Перезагружаем таблицу, чтобы обновить кнопки (если статус стал "Сдан", кнопки могут измениться)
+        loadBikes(token, true);
+
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
     }
 }
 
@@ -255,11 +292,11 @@ function updateStats(bikes) {
     let available = 0;
 
     for (const bike of bikes) {
-        if (bike.is_broken) {
+        if (bike.status === 'broken') {
             broken++;
-        } else if (bike.is_rented) {
+        } else if (bike.status === 'rented') {
             rented++;
-        } else {
+        } else if (bike.status === 'available') {
             available++;
         }
     }
@@ -570,37 +607,78 @@ async function loadRentals(token) {
 
             const serial = serialByBikeId[rental.bike_id] || '#' + rental.bike_id;
 
-            // Статус аренды
-            let statusBadge;
-            if (rental.returned_at) {
-                statusBadge = '<span style="color: green;">Возвращён</span>';
+            // 1. Статус аренды (Возвращён, Активен, Просрочен)
+            // Селект для статуса аренды
+            // Если returned_at есть — значит "Возвращён", иначе "Активен"
+            // (Просрочен мы показываем как "Активен", но красным, если дата прошла)
+            const isReturned = !!rental.returned_at;
+            const isOverdue = !isReturned && new Date(rental.planned_end_at) < new Date();
+
+            let statusClass = 'status-rented'; // Оранжевый (Активен)
+            if (isReturned) statusClass = 'status-available'; // Зеленый (Возвращен)
+            else if (isOverdue) statusClass = 'status-broken'; // Красный (Просрочен)
+
+            // Если просрочен, мы не даем выбрать "Активен", а показываем "Просрочен"
+            // Но если он возвращен, можно вернуть обратно в "Активен"
+            let statusOptions = '';
+            if (isReturned) {
+                statusOptions = `
+                    <option value="returned" selected>Возвращён</option>
+                    <option value="active">Активен</option>
+                `;
             } else {
-                // Проверяем, просрочена ли
-                const plannedEnd = new Date(rental.planned_end_at);
-                if (plannedEnd < new Date()) {
-                    statusBadge = '<span style="color: red;">Просрочен</span>';
-                } else {
-                    statusBadge = '<span style="color: orange;">Активен</span>';
-                }
+                statusOptions = `
+                    <option value="active" selected>${isOverdue ? 'Просрочен' : 'Активен'}</option>
+                    <option value="returned">Вернуть</option>
+                `;
             }
 
-            // Статус оплаты
-            const paidBadge = rental.is_paid
-                ? '<span style="color: green;">Оплачено</span>'
-                : '<span style="color: red;">Не оплачено</span>';
+            const statusSelect = `
+                <select class="status-select ${statusClass}" 
+                        onchange="changeRentalStatus(${rental.id}, this.value)">
+                    ${statusOptions}
+                </select>
+            `;
 
-            // Кнопка действия
+            // 2. Селект для смены оплаты (Оплачено / Не оплачено)
+            const paymentSelect = `
+                <select class="status-select ${rental.is_paid ? 'status-available' : 'status-broken'}" 
+                        onchange="changePaymentStatus(${rental.id}, this.value === 'true')">
+                    <option value="false" ${!rental.is_paid ? 'selected' : ''}>Не оплачено</option>
+                    <option value="true" ${rental.is_paid ? 'selected' : ''}>Оплачено</option>
+                </select>
+            `;
+
+            // 3. Ячейка Залога (селект для возврата/невозврата)
+            // 3. Ячейка Залога
+            let depositCell = '<span style="color: gray;">—</span>';
+            if (rental.deposit) {
+                const depositClass = rental.is_deposit_returned ? 'deposit-returned' : 'deposit-not-returned';
+
+                depositCell = `
+                    <select class="deposit-select ${depositClass}" 
+                            onchange="changeDepositStatus(${rental.id}, this.value === 'true')">
+                        <option value="false" class="opt-not-returned" ${!rental.is_deposit_returned ? 'selected' : ''}>${formatMoney(rental.deposit)} (оставить)</option>
+                        <option value="true" class="opt-returned" ${rental.is_deposit_returned ? 'selected' : ''}>${formatMoney(rental.deposit)} (вернуть)</option>
+                    </select>
+                `;
+            }
+
+            // 4. Ячейка Предоплаты
+            const prepaymentCell = rental.prepayment
+                ? formatMoney(rental.prepayment)
+                : '<span style="color: gray;">—</span>';
+
+            // 5. Кнопки действий (Редактировать и Удалить)
             let actionButton = '';
             if (!rental.returned_at) {
                 actionButton = `<button class="outline btn-sm" onclick="openEditRentalForm(${rental.id})">Редактировать</button> `;
-                actionButton += `<button class="outline btn-sm" onclick="returnRental(${rental.id})">Вернуть</button> `;
-            }
-            if (!rental.is_paid && !rental.returned_at) {
-                actionButton += `<button class="outline btn-sm" onclick="markRentalPaid(${rental.id})">Оплачено</button> `;
-                // Удалить можно только активную И неоплаченную
-                actionButton += `<button class="outline secondary btn-icon" onclick="deleteRental(${rental.id})">Удалить</button>`;
+                if (!rental.is_paid) {
+                    actionButton += `<button class="outline secondary btn-icon" onclick="deleteRental(${rental.id})">Удалить</button>`;
+                }
             }
 
+            // 6. Собираем строку (строго по порядку колонок из HTML)
             row.innerHTML = `
                 <td>${rental.id}</td>
                 <td>${serial}</td>
@@ -608,8 +686,10 @@ async function loadRentals(token) {
                 <td><small>${formatDate(rental.started_at)}</small></td>
                 <td><small>${formatDate(rental.planned_end_at)}</small></td>
                 <td>${formatMoney(rental.total_amount)}</td>
-                <td>${paidBadge}</td>
-                <td>${statusBadge}</td>
+                <td>${prepaymentCell}</td>
+                <td>${depositCell}</td>
+                <td>${paymentSelect}</td>
+                <td>${statusSelect}</td>
                 <td style="white-space: nowrap;"><div class="actions-cell">${actionButton}</div></td>
             `;
             tbody.appendChild(row);
@@ -619,6 +699,50 @@ async function loadRentals(token) {
         errorDiv.textContent = 'Ошибка: ' + err.message;
         errorDiv.style.display = 'block';
         console.error('Failed to load rentals:', err);
+    }
+}
+
+async function changeDepositStatus(id, returned) {
+    const token = getToken();
+    try {
+        const response = await fetch(`/rentals/${id}/deposit`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ returned: returned })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка смены статуса залога: ' + (err.error || response.status));
+        }
+        loadRentals(token); // Перезагружаем таблицу
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
+    }
+}
+
+async function changePaymentStatus(id, isPaid) {
+    const token = getToken();
+    try {
+        const response = await fetch(`/rentals/${id}/payment`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({ is_paid: isPaid })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка смены статуса оплаты: ' + (err.error || response.status));
+        }
+        loadRentals(token);
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
     }
 }
 
@@ -1138,10 +1262,12 @@ async function loadPartnerBikes(token) {
             const row = document.createElement('tr');
 
             let statusBadge = '';
-            if (bike.is_broken) {
+            if (bike.status === 'broken') {
                 statusBadge = '<span style="color: red;">Сломан</span>';
-            } else if (bike.is_rented) {
+            } else if (bike.status === 'rented') {
                 statusBadge = '<span style="color: orange;">Сдан</span>';
+            } else if (bike.status === 'assembly') {
+                statusBadge = '<span style="color: blue;">Сборка</span>';
             } else {
                 statusBadge = '<span style="color: green;">Свободен</span>';
             }
@@ -1215,10 +1341,12 @@ async function showBikeDetails(bikeId, serial) {
 
         // Статус
         let statusHtml = '';
-        if (bike.is_broken) {
+        if (bike.status === 'broken') {
             statusHtml = '<span style="color: #c0392b; font-weight: 600;">Сломан</span>';
-        } else if (bike.is_rented) {
+        } else if (bike.status === 'rented') {
             statusHtml = '<span style="color: #e67e22; font-weight: 600;">Сдан</span>';
+        } else if (bike.status === 'assembly') {
+            statusHtml = '<span style="color: #2980b9; font-weight: 600;">Сборка</span>';
         } else {
             statusHtml = '<span style="color: #27ae60; font-weight: 600;">Свободен</span>';
         }
@@ -1996,8 +2124,8 @@ async function openEditRentalForm(id) {
 
         // Блокируем неизменяемые поля
         document.getElementById('rental-form-started').disabled = true;
-        document.getElementById('rental-form-prepayment').disabled = true;
-        document.getElementById('rental-form-deposit').disabled = true;
+        loadRentals         // document.getElementById('rental-form-prepayment').disabled = true;
+        // document.getElementById('rental-form-deposit').disabled = true;
         document.getElementById('rental-form-bike').disabled = true;
 
         // Заголовок и кнопка
@@ -2029,7 +2157,7 @@ async function handleRentalFormSubmit(event) {
     const id = document.getElementById('rental-form-id').value;
     const isEdit = id !== '';
 
-    // Для создания
+    // ========== РЕЖИМ СОЗДАНИЯ ==========
     if (!isEdit) {
         const body = {
             bike_id: parseInt(form.bike_id.value, 10),
@@ -2037,30 +2165,26 @@ async function handleRentalFormSubmit(event) {
             renter_phone: form.renter_phone.value.trim(),
             planned_end_at: new Date(form.planned_end_at.value).toISOString(),
             total_amount: parseInt(form.total_amount.value, 10),
+            prepayment: form.prepayment.value ? parseInt(form.prepayment.value, 10) : null,
+            deposit: form.deposit.value ? parseInt(form.deposit.value, 10) : null,
+            comment: form.comment.value.trim() || null,
         };
 
         if (form.started_at.value) {
             body.started_at = new Date(form.started_at.value).toISOString();
         }
-        if (form.prepayment.value) {
-            body.prepayment = parseInt(form.prepayment.value, 10);
-        }
-        if (form.deposit.value) {
-            body.deposit = parseInt(form.deposit.value, 10);
-        }
-        if (form.comment.value.trim()) {
-            body.comment = form.comment.value.trim();
-        }
 
         return sendRentalRequest('/rentals', 'POST', body, token, errorDiv);
     }
 
-    // Для редактирования — только изменяемые поля
+    // ========== РЕЖИМ РЕДАКТИРОВАНИЯ ==========
     const body = {
         renter_name: form.renter_name.value.trim(),
         renter_phone: form.renter_phone.value.trim(),
         planned_end_at: new Date(form.planned_end_at.value).toISOString(),
         total_amount: parseInt(form.total_amount.value, 10),
+        prepayment: form.prepayment.value ? parseInt(form.prepayment.value, 10) : null,
+        deposit: form.deposit.value ? parseInt(form.deposit.value, 10) : null,
         comment: form.comment.value.trim() || null,
     };
 
@@ -2112,7 +2236,7 @@ async function fillAvailableBikesDropdown(select) {
         if (!response.ok) return;
 
         const bikes = await response.json();
-        const available = bikes.filter(b => !b.is_rented && !b.is_broken);
+        const available = bikes.filter(b => b.status === 'available');
 
         if (available.length === 0) {
             select.innerHTML = '<option value="">— Нет свободных велосипедов —</option>';
@@ -2150,8 +2274,9 @@ async function fillAllBikesDropdown(select) {
             option.value = bike.id;
             let label = bike.serial_number;
             if (bike.model) label += ' — ' + bike.model;
-            if (bike.is_rented) label += ' (сдан)';
-            if (bike.is_broken) label += ' (сломан)';
+            if (bike.status === 'rented') label += ' (сдан)'; // <-- ИЗМЕНИТЬ
+            if (bike.status === 'broken') label += ' (сломан)'; // <-- ИЗМЕНИТЬ
+            if (bike.status === 'assembly') label += ' (сборка)'; // <-- ДОБАВИТЬ
             option.textContent = label;
             option.dataset.serial = bike.serial_number;
             select.appendChild(option);
@@ -2332,3 +2457,40 @@ document.addEventListener('click', (e) => {
         menu.classList.remove('open');
     }
 });
+
+async function changeRentalStatus(id, action) {
+    const token = getToken();
+    const method = 'POST';
+    let url = '';
+
+    if (action === 'returned') {
+        // Закрываем аренду (вернуть велосипед)
+        url = `/rentals/${id}/return`;
+        if (!confirm('Завершить аренду и вернуть велосипед?')) {
+            loadRentals(token); // откат UI
+            return;
+        }
+    } else if (action === 'active') {
+        // Отменяем возврат (сделать аренду снова активной)
+        url = `/rentals/${id}/cancel-return`;
+        if (!confirm('Отменить возврат и сделать аренду снова активной?')) {
+            loadRentals(token);
+            return;
+        }
+    }
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка смены статуса: ' + (err.error || response.status));
+        }
+        loadRentals(token); // Перезагружаем таблицу
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
+    }
+}

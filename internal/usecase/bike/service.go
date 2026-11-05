@@ -34,6 +34,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*bike.Bike, er
 		SerialNumber: strings.TrimSpace(input.SerialNumber),
 		Model:        input.Model,
 		Comment:      input.Comment,
+		Status:       bike.StatusAvailable, // <-- ЯВНО СТАВИМ СТАТУС "СВОБОДЕН"
 	}
 
 	created, err := s.repo.Create(ctx, b)
@@ -124,31 +125,37 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (s *Service) SetRented(ctx context.Context, id int64, rented bool) error {
+// ChangeStatus — меняет статус велосипеда (available, rented, broken, assembly).
+func (s *Service) ChangeStatus(ctx context.Context, id int64, status string) (*bike.Bike, error) {
 	if id <= 0 {
-		return fmt.Errorf("%w: id must be positive", bike.ErrInvalidInput)
+		return nil, fmt.Errorf("%w: id must be positive", bike.ErrInvalidInput)
 	}
 
-	err := s.repo.SetRented(ctx, id, rented)
+	// Валидация статуса (чтобы нельзя было передать мусор)
+	validStatuses := map[string]bool{
+		bike.StatusAvailable: true,
+		bike.StatusRented:    true,
+		bike.StatusBroken:    true,
+		bike.StatusAssembly:  true,
+	}
+	if !validStatuses[status] {
+		return nil, fmt.Errorf("%w: invalid status", bike.ErrInvalidInput)
+	}
+
+	// Обновляем в БД
+	if err := s.repo.UpdateStatus(ctx, id, status); err != nil {
+		s.logger.Error("failed to update bike status", "id", id, "status", status, "error", err)
+		return nil, fmt.Errorf("update bike status: %w", err)
+	}
+
+	// Возвращаем обновленный велосипед
+	updated, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to set rented", "id", id, "value", rented, "error", err)
-		return fmt.Errorf("set rented: %w", err)
+		return nil, fmt.Errorf("get updated bike: %w", err)
 	}
 
-	s.logger.Info("bike rented status changed", "id", id, "is_rented", rented)
-	return nil
-}
-
-func (s *Service) SetBroken(ctx context.Context, id int64, broken bool) error {
-	if id <= 0 {
-		return fmt.Errorf("%w: id must be positive", bike.ErrInvalidInput)
-	}
-	if err := s.repo.SetBroken(ctx, id, broken); err != nil {
-		s.logger.Error("failed to set broken", "id", id, "value", broken, "error", err)
-		return fmt.Errorf("set broken: %w", err)
-	}
-	s.logger.Info("bike broken status changed", "id", id, "is_broken", broken)
-	return nil
+	s.logger.Info("bike status changed", "id", id, "status", status)
+	return updated, nil
 }
 
 func validateCreateInput(input CreateInput) error {

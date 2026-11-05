@@ -264,3 +264,87 @@ func (h *RentalHandler) handleError(c *gin.Context, err error) {
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
 	}
 }
+
+// ChangePaymentStatus godoc
+// @Summary     Изменить статус оплаты аренды
+// @Tags        rentals
+// @Accept      json
+// @Produce     json
+// @Param       id path int true "ID аренды"
+// @Param       request body ChangePaymentStatusRequest true "Статус оплаты"
+// @Success     200 {object} RentalResponse
+// @Router      /rentals/{id}/payment [patch]
+func (h *RentalHandler) ChangePaymentStatus(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	var req ChangePaymentStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	updated, err := h.usecase.ChangePaymentStatus(c.Request.Context(), id, req.IsPaid)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toRentalResponse(updated))
+}
+
+// ReturnDeposit godoc
+// @Summary     Вернуть/не вернуть залог
+// @Tags        rentals
+// @Accept      json
+// @Produce     json
+// @Param       id path int true "ID аренды"
+// @Param       request body ReturnDepositRequest true "Вернуть ли залог"
+// @Success     200 {object} RentalResponse
+// @Router      /rentals/{id}/deposit [patch]
+func (h *RentalHandler) ReturnDeposit(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	var req ReturnDepositRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	updated, err := h.usecase.ReturnDeposit(c.Request.Context(), id, req.Returned)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toRentalResponse(updated))
+}
+
+// CancelReturn godoc
+// @Summary     Отменить возврат аренды
+// @Tags        rentals
+// @Param       id path int true "ID аренды"
+// @Success     200 {object} RentalResponse
+// @Router      /rentals/{id}/cancel-return [post]
+func (h *RentalHandler) CancelReturn(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	updated, err := h.usecase.CancelReturn(c.Request.Context(), id)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toRentalResponse(updated))
+}

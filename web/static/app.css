@@ -480,3 +480,128 @@ nav.app-nav button.nav-toggle:hover {
         gap: 0.5rem;
     }
 }
+
+/* ============ Статус (селект) ============ */
+.status-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #fff !important;
+    color: #333 !important;
+    border: 1px solid var(--pico-muted-border-color);
+    font-weight: 600;
+    font-size: 0.9rem; /* Чуть уменьшили шрифт */
+    padding: 6px 30px 6px 12px; /* Отступы: сверху/снизу 6px, справа 30px под стрелку, слева 12px */
+    border-radius: 6px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center; /* Стрелка по центру справа */
+    background-size: 10px auto;
+    transition: all 0.2s ease;
+
+    /* ГЛАВНОЕ: отменяем стандартную ширину 100% от Pico.css */
+    width: auto !important;
+    min-width: 130px; /* Минимальная ширина, чтобы влезло "Не оплачено" */
+    max-width: 100%;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* При наведении/фокусе */
+.status-select:hover, .status-select:focus {
+    border-color: var(--pico-primary);
+    box-shadow: 0 0 0 2px rgba(var(--pico-primary-rgb), 0.2);
+}
+
+/* Опции внутри списка */
+.status-select option {
+    color: #333;
+    background: #fff;
+    padding: 4px;
+}
+
+/* Цвета для разных статусов */
+.status-available { color: #27ae60 !important; border-color: #27ae60 !important; }
+.status-rented    { color: #e67e22 !important; border-color: #e67e22 !important; }
+.status-broken    { color: #c0392b !important; border-color: #c0392b !important; }
+.status-assembly  { color: #2980b9 !important; border-color: #2980b9 !important; }
+
+/* ============ Адаптив для таблиц ============ */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    border: 1px solid var(--pico-muted-border-color);
+    border-radius: var(--pico-border-radius);
+}
+
+.table-wrapper table {
+    min-width: 900px; /* Чтобы таблица не сжималась слишком сильно */
+    margin: 0;
+    vertical-align: middle; /* Выравниваем контент по центру строки */
+}
+
+.table-wrapper th,
+.table-wrapper td {
+    vertical-align: middle; /* Убираем "прыгание" контента по вертикали */
+    padding: 0.75rem 0.5rem; /* Чуть уменьшили горизонтальные отступы */
+}
+
+/* На мобильных делаем шрифт в таблице чуть меньше */
+@media (max-width: 768px) {
+    .status-select {
+        font-size: 0.85rem;
+        padding: 4px 24px 4px 8px;
+        min-width: 110px;
+    }
+
+    .table-wrapper th,
+    .table-wrapper td {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.25rem;
+    }
+}
+
+/* ============ Селект для залога ============ */
+.deposit-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: transparent;
+    border: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 6px 10px; /* Чуть больше отступов по бокам */
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    text-align-last: center; /* Для Firefox */
+
+    /* ГЛАВНОЕ: фиксируем ширину, чтобы сумма не сжималась */
+    min-width: 110px;
+    width: auto;
+
+    /* Убираем стандартную стрелочку */
+    background-image: none;
+}
+
+/* Чтобы было понятно, что это кликабельно */
+.deposit-select:hover {
+    filter: brightness(0.95);
+    box-shadow: 0 0 0 1px var(--pico-muted-border-color);
+}
+
+/* Когда список открыт */
+.deposit-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--pico-primary);
+}
+
+/* Опции внутри списка */
+.deposit-select option {
+    color: #333;
+    background: #fff;
+    text-align: center; /* Центрируем текст в опциях */
+    padding: 4px;
+}
+

@@ -239,3 +239,36 @@ func (h *BikeHandler) DeletePhoto(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+// ChangeStatus godoc
+// @Summary     Сменить статус велосипеда
+// @Tags        bikes
+// @Accept      json
+// @Produce     json
+// @Param       id path int true "ID велосипеда"
+// @Param       request body ChangeStatusRequest true "Новый статус"
+// @Success     200 {object} BikeResponse
+// @Failure     400 {object} ErrorResponse
+// @Failure     404 {object} ErrorResponse
+// @Router      /bikes/{id}/status [patch]
+func (h *BikeHandler) ChangeStatus(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	var req ChangeStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	updated, err := h.usecase.ChangeStatus(c.Request.Context(), id, req.Status)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toBikeResponse(updated))
+}

@@ -26,6 +26,8 @@ type UpdateRentalRequest struct {
 	RenterPhone  *string    `json:"renter_phone"`
 	PlannedEndAt *time.Time `json:"planned_end_at"`
 	TotalAmount  *int64     `json:"total_amount"`
+	Prepayment   *int64     `json:"prepayment"`
+	Deposit      *int64     `json:"deposit"`
 	Comment      *string    `json:"comment"`
 }
 
@@ -103,6 +105,16 @@ func toUpdateRentalInput(req UpdateRentalRequest) rentalusecase.UpdateInput {
 		RenterPhone:  req.RenterPhone,
 		PlannedEndAt: req.PlannedEndAt,
 		TotalAmount:  req.TotalAmount,
+		Prepayment:   req.Prepayment,
+		Deposit:      req.Deposit,
 		Comment:      req.Comment,
 	}
+}
+
+type ChangePaymentStatusRequest struct {
+	IsPaid bool `json:"is_paid"`
+}
+
+type ReturnDepositRequest struct {
+	Returned bool `json:"returned"`
 }

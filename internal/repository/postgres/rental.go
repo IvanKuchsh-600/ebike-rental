@@ -152,8 +152,9 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 		UPDATE rentals
 		SET renter_name = $1, renter_phone = $2,
 		    planned_end_at = $3, total_amount = $4,
-		    comment = $5
-		WHERE id = $6
+		    prepayment = $5, deposit = $6,   
+		    comment = $7
+		WHERE id = $8
 		RETURNING
 			id, bike_id, renter_name, renter_phone,
 			started_at, planned_end_at, returned_at,
@@ -166,6 +167,7 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 	err := r.db.QueryRow(ctx, query,
 		rr.RenterName, rr.RenterPhone,
 		rr.PlannedEndAt, rr.TotalAmount,
+		rr.Prepayment, rr.Deposit,
 		rr.Comment, rr.ID,
 	).Scan(
 		&updated.ID, &updated.BikeID, &updated.RenterName, &updated.RenterPhone,
@@ -292,4 +294,51 @@ func (r *RentalRepository) exists(ctx context.Context, id int64) (bool, error) {
 		return false, fmt.Errorf("check rental exists: %w", err)
 	}
 	return exists, nil
+}
+
+// SetPaid — устанавливает статус оплаты (true/false).
+func (r *RentalRepository) SetPaid(ctx context.Context, id int64, isPaid bool) error {
+	query := `UPDATE rentals SET is_paid = $1 WHERE id = $2`
+	result, err := r.db.Exec(ctx, query, isPaid, id)
+	if err != nil {
+		r.logger.Error("failed to set paid", "id", id, "is_paid", isPaid, "error", err)
+		return fmt.Errorf("set paid: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return rental.ErrNotFound
+	}
+	return nil
+}
+
+// SetDepositReturned — возвращает или отменяет возврат залога.
+// Если возвращаем (true), то deposit_returned = deposit.
+// Если отменяем (false), то deposit_returned = NULL.
+func (r *RentalRepository) SetDepositReturned(ctx context.Context, id int64, returned bool) error {
+	query := `
+		UPDATE rentals 
+		SET is_deposit_returned = $1, 
+		    deposit_returned = CASE WHEN $1 = TRUE THEN deposit ELSE NULL END 
+		WHERE id = $2
+	`
+	result, err := r.db.Exec(ctx, query, returned, id)
+	if err != nil {
+		r.logger.Error("failed to set deposit returned", "id", id, "returned", returned, "error", err)
+		return fmt.Errorf("set deposit returned: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return rental.ErrNotFound
+	}
+	return nil
+}
+
+func (r *RentalRepository) CancelReturn(ctx context.Context, id int64) error {
+	query := `UPDATE rentals SET returned_at = NULL WHERE id = $1`
+	result, err := r.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("cancel return: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return rental.ErrNotFound
+	}
+	return nil
 }

@@ -13,10 +13,11 @@ type Repository interface {
 	List(ctx context.Context) ([]bike.Bike, error)
 	Update(ctx context.Context, b *bike.Bike) (*bike.Bike, error)
 	Delete(ctx context.Context, id int64) error
-	SetRented(ctx context.Context, id int64, rented bool) error
-	SetBroken(ctx context.Context, id int64, broken bool) error
+	//SetRented(ctx context.Context, id int64, rented bool) error
+	//SetBroken(ctx context.Context, id int64, broken bool) error
 	UpdatePhoto(ctx context.Context, id int64, photoPath string) error
 	ClearPhoto(ctx context.Context, id int64) error
+	UpdateStatus(ctx context.Context, id int64, status string) error
 }
 
 // Usecase — публичный контракт сервиса.
@@ -26,10 +27,11 @@ type Usecase interface {
 	List(ctx context.Context) ([]bike.Bike, error)
 	Update(ctx context.Context, id int64, input UpdateInput) (*bike.Bike, error)
 	Delete(ctx context.Context, id int64) error
-	SetRented(ctx context.Context, id int64, rented bool) error
-	SetBroken(ctx context.Context, id int64, broken bool) error
+	//SetRented(ctx context.Context, id int64, rented bool) error
+	//SetBroken(ctx context.Context, id int64, broken bool) error
 	UploadPhoto(ctx context.Context, id int64, file []byte, filename string) (*bike.Bike, error)
 	DeletePhoto(ctx context.Context, id int64) error
+	ChangeStatus(ctx context.Context, id int64, status string) (*bike.Bike, error)
 }
 
 type CreateInput struct {

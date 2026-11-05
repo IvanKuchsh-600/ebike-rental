@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/breakdown"
 )
 
@@ -51,7 +52,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*breakdown.Bre
 	}
 
 	// Пометить велосипед сломанным (без транзакции)
-	if err := s.bikeRepo.SetBroken(ctx, input.BikeID, true); err != nil {
+	if err := s.bikeRepo.UpdateStatus(ctx, input.BikeID, bike.StatusBroken); err != nil {
 		// Логируем, но не падаем — breakdown уже создан
 		s.logger.Error("failed to set bike broken", "bike_id", input.BikeID, "error", err)
 	}
@@ -169,7 +170,7 @@ func (s *Service) MarkFixed(ctx context.Context, id int64) error {
 	}
 
 	if !hasUnfixed {
-		if err := s.bikeRepo.SetBroken(ctx, b.BikeID, false); err != nil {
+		if err := s.bikeRepo.UpdateStatus(ctx, b.BikeID, bike.StatusAvailable); err != nil { // <-- ДОБАВИТЬ
 			s.logger.Error("failed to set bike not broken", "bike_id", b.BikeID, "error", err)
 			// Не падаем — breakdown уже помечен
 		}

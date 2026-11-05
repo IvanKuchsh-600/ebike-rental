@@ -52,10 +52,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*rental.Rental
 		}
 
 		// 2. Проверить доступность
-		if b.IsRented {
-			return rental.ErrBikeNotAvailable
-		}
-		if b.IsBroken {
+		if !b.IsAvailable() {
 			return rental.ErrBikeNotAvailable
 		}
 
@@ -86,7 +83,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*rental.Rental
 		created = result
 
 		// 5. Пометить велосипед сданным
-		if err := repos.Bikes.SetRented(ctx, input.BikeID, true); err != nil {
+		if err := repos.Bikes.UpdateStatus(ctx, input.BikeID, bike.StatusRented); err != nil {
 			return fmt.Errorf("set bike rented: %w", err)
 		}
 
@@ -189,6 +186,18 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateInput) (*ren
 		}
 		existing.TotalAmount = *input.TotalAmount
 	}
+	if input.Prepayment != nil {
+		if *input.Prepayment < 0 {
+			return nil, fmt.Errorf("%w: prepayment cannot be negative", rental.ErrInvalidInput)
+		}
+		existing.Prepayment = input.Prepayment
+	}
+	if input.Deposit != nil {
+		if *input.Deposit < 0 {
+			return nil, fmt.Errorf("%w: deposit cannot be negative", rental.ErrInvalidInput)
+		}
+		existing.Deposit = input.Deposit
+	}
 	if input.Comment != nil {
 		existing.Comment = input.Comment
 	}
@@ -231,7 +240,7 @@ func (s *Service) Return(ctx context.Context, id int64) (*rental.Rental, error) 
 		}
 
 		// 4. Освободить велосипед
-		if err := repos.Bikes.SetRented(ctx, r.BikeID, false); err != nil {
+		if err := repos.Bikes.UpdateStatus(ctx, r.BikeID, bike.StatusAvailable); err != nil {
 			return fmt.Errorf("set bike free: %w", err)
 		}
 
@@ -334,4 +343,93 @@ func validateCreateInput(input CreateInput) error {
 	}
 
 	return nil
+}
+
+// ChangePaymentStatus — меняет статус оплаты аренды.
+func (s *Service) ChangePaymentStatus(ctx context.Context, id int64, isPaid bool) (*rental.Rental, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("%w: id must be positive", rental.ErrInvalidInput)
+	}
+
+	if err := s.rentalRepo.SetPaid(ctx, id, isPaid); err != nil {
+		s.logger.Error("failed to change payment status", "id", id, "error", err)
+		return nil, err
+	}
+
+	updated, err := s.rentalRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get updated rental: %w", err)
+	}
+
+	s.logger.Info("rental payment status changed", "id", id, "is_paid", isPaid)
+	return updated, nil
+}
+
+// ReturnDeposit — возвращает залог по аренде.
+func (s *Service) ReturnDeposit(ctx context.Context, id int64, returned bool) (*rental.Rental, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("%w: id must be positive", rental.ErrInvalidInput)
+	}
+
+	if err := s.rentalRepo.SetDepositReturned(ctx, id, returned); err != nil {
+		s.logger.Error("failed to return deposit", "id", id, "error", err)
+		return nil, err
+	}
+
+	updated, err := s.rentalRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get updated rental: %w", err)
+	}
+
+	s.logger.Info("rental deposit returned", "id", id, "returned", returned)
+	return updated, nil
+}
+
+// CancelReturn — отменяет возврат аренды (делает её снова активной).
+func (s *Service) CancelReturn(ctx context.Context, id int64) (*rental.Rental, error) {
+	if id <= 0 {
+		return nil, fmt.Errorf("%w: id must be positive", rental.ErrInvalidInput)
+	}
+
+	var result *rental.Rental
+
+	err := s.transactor.WithinTransaction(ctx, func(ctx context.Context, repos Repos) error {
+		// 1. Загрузить аренду
+		r, err := repos.Rentals.GetByID(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		// 2. Проверить, что аренда действительно была возвращена
+		if r.ReturnedAt == nil {
+			return fmt.Errorf("%w: rental is already active", rental.ErrInvalidInput)
+		}
+
+		// 3. Отменить возврат (обнулить returned_at)
+		if err := repos.Rentals.CancelReturn(ctx, id); err != nil {
+			return fmt.Errorf("cancel return: %w", err)
+		}
+
+		// 4. Занять велосипед обратно (статус "Сдан")
+		if err := repos.Bikes.UpdateStatus(ctx, r.BikeID, bike.StatusRented); err != nil {
+			return fmt.Errorf("set bike rented: %w", err)
+		}
+
+		// 5. Вернуть актуальное состояние
+		updated, err := repos.Rentals.GetByID(ctx, id)
+		if err != nil {
+			return fmt.Errorf("get updated rental: %w", err)
+		}
+		result = updated
+
+		return nil
+	})
+
+	if err != nil {
+		s.logger.Error("failed to cancel rental return", "id", id, "error", err)
+		return nil, err
+	}
+
+	s.logger.Info("rental return cancelled", "id", id)
+	return result, nil
 }

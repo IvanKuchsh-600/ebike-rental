@@ -70,8 +70,7 @@ type PartnerBikeResponse struct {
 	ID           int64     `json:"id"`
 	SerialNumber string    `json:"serial_number"`
 	Model        *string   `json:"model"`
-	IsRented     bool      `json:"is_rented"`
-	IsBroken     bool      `json:"is_broken"`
+	Status       string    `json:"status"` // <-- ДОБАВИТЬ
 	PhotoURL     *string   `json:"photo_url"`
 	CreatedAt    time.Time `json:"created_at"`
 }
@@ -90,8 +89,7 @@ func toPartnerBikeResponse(b *bike.Bike) PartnerBikeResponse {
 		ID:           b.ID,
 		SerialNumber: b.SerialNumber,
 		Model:        b.Model,
-		IsRented:     b.IsRented,
-		IsBroken:     b.IsBroken,
+		Status:       b.Status,
 		PhotoURL:     photoURL,
 		CreatedAt:    b.CreatedAt,
 	}

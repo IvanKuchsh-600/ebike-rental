@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
 )
 
 type Service struct {
@@ -51,13 +53,15 @@ func (s *Service) Dashboard(ctx context.Context, month string) (*DashboardResult
 
 	bikesStats := BikesStats{Total: len(bikes)}
 	for i := range bikes {
-		switch {
-		case bikes[i].IsBroken:
+		switch bikes[i].Status {
+		case bike.StatusBroken:
 			bikesStats.Broken++
-		case bikes[i].IsRented:
+		case bike.StatusRented:
 			bikesStats.Rented++
-		default:
+		case bike.StatusAvailable:
 			bikesStats.Available++
+		case bike.StatusAssembly:
+			// В сборке — пока не считаем ни в одной из групп, либо можно добавить отдельное поле
 		}
 	}
 
