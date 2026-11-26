@@ -34,6 +34,7 @@ type PayoutPreviewResponse struct {
 	PeriodStart       time.Time `json:"period_start"`
 	PeriodEnd         time.Time `json:"period_end"`
 	TotalRevenue      int64     `json:"total_revenue"`
+	OwnerShare        int64     `json:"owner_share"`
 	PartnerShare      int64     `json:"partner_share"`
 	AmortizationShare int64     `json:"amortization_share"`
 }
@@ -69,6 +70,7 @@ func toPayoutPreviewResponse(r *payoutusecase.PreviewResult) PayoutPreviewRespon
 		PeriodStart:       r.PeriodStart,
 		PeriodEnd:         r.PeriodEnd,
 		TotalRevenue:      r.TotalRevenue,
+		OwnerShare:        r.OwnerShare,
 		PartnerShare:      r.PartnerShare,
 		AmortizationShare: r.AmortizationShare,
 	}

@@ -8,13 +8,13 @@
         <small>Посчитать, сколько должен партнёру</small>
     </header>
 
-    <div class="form-actions" style="align-items: end; flex-wrap: wrap;">
-        <label style="flex: 1; min-width: 200px;">
+    <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem;">
+        <label style="flex: 1; min-width: 200px; margin-bottom: 0;">
             Месяц
-            <input type="month" id="preview-month" value="">
+            <input type="month" id="preview-month" value="" style="margin-bottom: 0;">
         </label>
 
-        <button class="btn-action" onclick="loadPreview()" style="margin-bottom: 1rem;">Посчитать</button>
+        <button class="btn-action" onclick="loadPreview()" style="margin-bottom: 0; height: 42px;">Посчитать</button>
     </div>
 
     <div id="preview-loading" style="display: none; text-align: center;">Загрузка...</div>
@@ -39,7 +39,9 @@
                 <p style="font-size: 1.8rem; font-weight: bold; margin: 0; color: #e67e22;" id="preview-amortization">—</p>
             </div>
         </div>
-        <button onclick="fixPayout()" style="margin-top: 1rem;">Зафиксировать выплату</button>
+        <button onclick="fixPayout()" class="btn-action" style="margin-top: 1rem; width: auto; font-size: 1rem;">
+            Зафиксировать выплату
+        </button>
         <div id="preview-fix-error" style="color: red; margin-top: 0.5rem; display: none;"></div>
     </div>
 </article>

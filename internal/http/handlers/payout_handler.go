@@ -111,6 +111,30 @@ func (h *PayoutHandler) GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, toPayoutResponse(p))
 }
 
+// Recalculate godoc
+// @Summary     Пересчитать выплату
+// @Tags        payouts
+// @Produce     json
+// @Security    BearerAuth
+// @Param       id path int true "ID выплаты"
+// @Success     200 {object} PayoutResponse
+// @Router      /payouts/{id}/recalculate [post]
+func (h *PayoutHandler) Recalculate(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	result, err := h.usecase.Recalculate(c.Request.Context(), id)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toPayoutResponse(result))
+}
+
 // MarkPaid godoc
 // @Summary     Отметить выплату как выполненную
 // @Tags        payouts

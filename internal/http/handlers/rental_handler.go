@@ -77,7 +77,9 @@ func (h *RentalHandler) GetByID(c *gin.Context) {
 // @Success     200 {array} RentalResponse
 // @Router      /rentals [get]
 func (h *RentalHandler) List(c *gin.Context) {
-	items, err := h.usecase.List(c.Request.Context())
+	month := c.Query("month")
+
+	items, err := h.usecase.List(c.Request.Context(), month)
 	if err != nil {
 		h.handleError(c, err)
 		return

@@ -16,6 +16,20 @@
     white-space: nowrap;
 }
 
+/* Выравнивание контента в ячейках таблицы по центру по вертикали */
+.table-wrapper table td {
+    vertical-align: middle;
+}
+
+/* Убираем нижние отступы у параграфов и селектов внутри ячеек */
+.table-wrapper table td select,
+.table-wrapper table td button,
+.table-wrapper table td .actions-cell {
+    margin-top: 0;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+
 /* Кнопка-иконка (для удаления) */
 .btn-icon {
     padding: 0.25rem 0.5rem !important;
@@ -452,16 +466,16 @@ nav.app-nav button.nav-toggle:hover {
         font-size: 1rem;
     }
 
+    /* Меняем структуру на одну колонку */
     .bike-details-body {
-        display: grid;
-        grid-template-columns: 240px 1fr;
-        gap: 2rem;
-        padding: 1.5rem;
-        align-items: stretch;
-        max-width: 800px;
+        display: flex; /* Используем flex вместо grid, так проще в один столбец */
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1rem;
+        max-width: 100%;
         margin: 0 auto;
+        align-items: center; /* Центрируем контент */
     }
-
 
     .bike-details-photo img,
     .bike-details-photo > div {
@@ -472,12 +486,28 @@ nav.app-nav button.nav-toggle:hover {
         margin: 0 auto;
     }
 
-    .bike-details-breakdowns {
-        padding: 1rem;
+    /* Текст теперь под фото и растягивается на всю ширину */
+    .bike-details-info {
+        width: 100%;
+        text-align: center; /* Текст по центру (или left, если хочешь по левому краю) */
     }
 
-    .bike-info-dl {
-        gap: 0.5rem;
+    .bike-info-list {
+        display: grid;
+        /* 2 колонки, если хватает места (минимум 140px на колонку), иначе 1 */
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 1rem;
+        text-align: left;
+        width: 100%;
+    }
+
+    .bike-info-item {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .bike-details-breakdowns {
+        padding: 1rem;
     }
 }
 
@@ -505,6 +535,9 @@ nav.app-nav button.nav-toggle:hover {
     max-width: 100%;
     white-space: nowrap;
     vertical-align: middle;
+
+    vertical-align: middle; /* Добавляем это */
+    margin: 0; /* Убираем возможные отступы */
 }
 
 /* При наведении/фокусе */
@@ -580,6 +613,10 @@ nav.app-nav button.nav-toggle:hover {
     /* ГЛАВНОЕ: фиксируем ширину, чтобы сумма не сжималась */
     min-width: 110px;
     width: auto;
+    padding: 6px 10px;
+
+    vertical-align: middle;
+    margin: 0;
 
     /* Убираем стандартную стрелочку */
     background-image: none;

@@ -82,6 +82,18 @@
     </form>
 </article>
 
+<!-- Фильтр по месяцу -->
+<div style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <label style="margin-bottom: 0; width: 240px;">
+        Период
+        <input type="month" id="rentals-month-filter" value="" style="margin-bottom: 0;">
+    </label>
+    <button class="btn-action" onclick="loadRentals(getToken(), true)" style="margin-bottom: 0; height: 42px;">
+        Применить
+    </button>
+</div>
+</div>
+
 <!-- Таблица аренд -->
 <div id="rentals-loading">Загрузка...</div>
 <div id="rentals-error" style="color: red; display: none;"></div>

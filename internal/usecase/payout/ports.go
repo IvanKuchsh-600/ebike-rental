@@ -16,6 +16,7 @@ type Repository interface {
 	MarkPaid(ctx context.Context, id int64) error
 	Delete(ctx context.Context, id int64) error
 	CalculateRevenue(ctx context.Context, periodStart, periodEnd time.Time) (int64, error)
+	Update(ctx context.Context, p *payout.Payout) (*payout.Payout, error)
 }
 
 // Usecase — публичный контракт сервиса.
@@ -26,6 +27,7 @@ type Usecase interface {
 	List(ctx context.Context) ([]payout.Payout, error)
 	MarkPaid(ctx context.Context, id int64) (*payout.Payout, error)
 	Delete(ctx context.Context, id int64) error
+	Recalculate(ctx context.Context, id int64) (*payout.Payout, error)
 }
 
 type PreviewResult struct {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
+	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/payout"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/rental"
 )
 
@@ -24,6 +25,7 @@ type RentalRepository interface {
 // Реализуется payout-репозиторием.
 type RevenueProvider interface {
 	CalculateRevenue(ctx context.Context, periodStart, periodEnd time.Time) (int64, error)
+	GetPayoutByPeriod(ctx context.Context, periodStart, periodEnd time.Time) (*payout.Payout, error)
 }
 
 // Usecase — публичный контракт.

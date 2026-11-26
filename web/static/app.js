@@ -121,7 +121,7 @@ async function loadDashboard() {
 
     // 3. Пользователь — owner. Загружаем данные
     loadUserInfo(token);
-    loadBikes(token);
+    loadBikes(token, false, true);
 }
 
 async function loadUserInfo(token) {
@@ -149,7 +149,7 @@ async function loadUserInfo(token) {
     }
 }
 
-async function loadBikes(token, showActions = false) {
+async function loadBikes(token, showActions = false, isDashboard = false) {
     const loading = document.getElementById('bikes-loading');
     const errorDiv = document.getElementById('bikes-error');
     const table = document.getElementById('bikes-table');
@@ -178,8 +178,6 @@ async function loadBikes(token, showActions = false) {
         }
 
         const bikes = await response.json();
-
-        // Обновляем статистику (только на dashboard)
         updateStats(bikes);
 
         if (bikes.length === 0) {
@@ -188,26 +186,46 @@ async function loadBikes(token, showActions = false) {
             return;
         }
 
-        empty.style.display = 'none';    // ← СКРЫВАЕМ пустое состояние
+        empty.style.display = 'none';
         table.style.display = 'table';
         tbody.innerHTML = '';
 
         for (const bike of bikes) {
             const row = document.createElement('tr');
 
-            // Генерируем селект для статуса
-            const statusSelect = `
-                <select class="status-select status-${bike.status}" 
-                        onchange="changeBikeStatus(${bike.id}, this.value)" 
-                        ${showActions ? '' : 'disabled'}>
-                    <option value="available" ${bike.status === 'available' ? 'selected' : ''}>Свободен</option>
-                    <option value="rented" ${bike.status === 'rented' ? 'selected' : ''} ${bike.status === 'rented' ? 'disabled' : ''}>Сдан</option>
-                    <option value="broken" ${bike.status === 'broken' ? 'selected' : ''}>Сломан</option>
-                    <option value="assembly" ${bike.status === 'assembly' ? 'selected' : ''}>Сборка</option>
-                </select>
-            `;
+            // 1. ГЕНЕРИРУЕМ СЕЛЕКТ (ЭТО ДОЛЖНО БЫТЬ ЗДЕСЬ)
+            // Генерируем статус: селект для управления или просто текст для дашборда
+            let statusHtml = '';
 
-            // Кнопки действий — только если showActions = true
+            if (isDashboard) {
+                // Просто цветной текст (как на партнерском дашборде)
+                let color = '';
+                let text = '';
+                if (bike.status === 'broken') {
+                    color = '#c0392b'; text = 'Сломан';
+                } else if (bike.status === 'rented') {
+                    color = '#e67e22'; text = 'Сдан';
+                } else if (bike.status === 'assembly') {
+                    color = '#2980b9'; text = 'Сборка';
+                } else {
+                    color = '#27ae60'; text = 'Свободен';
+                }
+                statusHtml = `<span style="color: ${color}; font-weight: 600;">${text}</span>`;
+            } else {
+                // Селект (как было, для страницы управления)
+                statusHtml = `
+                    <select class="status-select status-${bike.status}" 
+                            onchange="changeBikeStatus(${bike.id}, this.value)" 
+                            ${showActions ? '' : 'disabled'}>
+                        <option value="available" ${bike.status === 'available' ? 'selected' : ''}>Свободен</option>
+                        <option value="rented" ${bike.status === 'rented' ? 'selected' : ''} ${bike.status === 'rented' ? 'disabled' : ''}>Сдан</option>
+                        <option value="broken" ${bike.status === 'broken' ? 'selected' : ''}>Сломан</option>
+                        <option value="assembly" ${bike.status === 'assembly' ? 'selected' : ''}>Сборка</option>
+                    </select>
+                `;
+            }
+
+            // 2. ГЕНЕРИРУЕМ ДЕЙСТВИЯ
             let actionsCell = '';
             if (showActions) {
                 actionsCell = `
@@ -221,20 +239,31 @@ async function loadBikes(token, showActions = false) {
                 `;
             }
 
-            // Формируем фото-ячейку
+            // 3. ФОТО
             let photoCell = '<span style="color: gray;">—</span>';
             if (bike.photo_url) {
                 photoCell = `<img src="${bike.photo_url}" alt="Фото" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">`;
             }
 
-            row.innerHTML = `
-                <td>${photoCell}</td>
-                <td>${bike.id}</td>
-                <td>${escapeHtml(bike.serial_number)}</td>
-                <td>${escapeHtml(bike.model || '—')}</td>
-                <td>${statusSelect}</td>
-                ${actionsCell}
-            `;
+            // 4. РЕНДЕР
+            if (isDashboard) {
+                row.innerHTML = `
+                    <td>${bike.id}</td>
+                    <td>${escapeHtml(bike.serial_number)}</td>
+                    <td>${escapeHtml(bike.model || '—')}</td>
+                    <td>${statusHtml}</td>
+                `;
+            } else {
+                row.innerHTML = `
+                    <td>${photoCell}</td>
+                    <td>${bike.id}</td>
+                    <td>${escapeHtml(bike.serial_number)}</td>
+                    <td>${escapeHtml(bike.model || '—')}</td>
+                    <td>${statusHtml}</td>
+                    ${actionsCell}
+                `;
+            }
+
             tbody.appendChild(row);
         }
     } catch (err) {
@@ -378,7 +407,6 @@ async function loadPartnerDashboard() {
         document.getElementById('stat-revenue').textContent = formatMoney(data.current_month.revenue);
         document.getElementById('stat-partner-share').textContent = formatMoney(data.current_month.partner_share);
 
-        // ДОБАВЛЯЕМ АМОРТИЗАЦИЮ:
         const amortizationEl = document.getElementById('stat-amortization');
         if (amortizationEl) {
             amortizationEl.textContent = formatMoney(data.current_month.amortization_share);
@@ -553,6 +581,16 @@ async function loadRentalsPage() {
     if (!user) return;
 
     loadUserInfo(token);
+
+    // Устанавливаем текущий месяц по умолчанию
+    const monthInput = document.getElementById('rentals-month-filter');
+    if (monthInput && !monthInput.value) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        monthInput.value = `${year}-${month}`;
+    }
+
     loadRentals(token);
 }
 
@@ -564,9 +602,18 @@ async function loadRentals(token) {
     const empty = document.getElementById('rentals-empty');
 
     try {
-        // Загружаем аренды и велосипеды (для серийников)
+        // Берем выбранный месяц из инпута
+        const monthFilter = document.getElementById('rentals-month-filter');
+        const month = monthFilter ? monthFilter.value : '';
+
+        // Формируем URL: если месяц выбран — добавляем ?month=
+        let url = '/rentals';
+        if (month) {
+            url += '?month=' + encodeURIComponent(month);
+        }
+
         const [rentalsResp, bikesResp] = await Promise.all([
-            fetch('/rentals', { headers: { 'Authorization': 'Bearer ' + token } }),
+            fetch(url, { headers: { 'Authorization': 'Bearer ' + token } }),
             fetch('/bikes', { headers: { 'Authorization': 'Bearer ' + token } }),
         ]);
 
@@ -592,10 +639,13 @@ async function loadRentals(token) {
         }
 
         if (rentals.length === 0) {
+            empty.textContent = month ? 'Нет аренд за выбранный период' : 'Нет аренд. Создайте первую!';
             empty.style.display = 'block';
             table.style.display = 'none';
             return;
         }
+        // Возвращаем исходный текст, если аренды есть
+        empty.textContent = 'Нет аренд. Создайте первую!';
 
 // Если дошли сюда — значит аренды есть
         empty.style.display = 'none';   // ← ДОБАВИТЬ
@@ -1021,22 +1071,19 @@ async function loadPreview() {
 
         const data = await response.json();
 
+        // ВОТ ЗДЕСЬ МЫ ЗАПОЛНЯЕМ ВСЕ 4 ПОЛЯ, ПОКА ПЕРЕМЕННАЯ data ДОСТУПНА
         document.getElementById('preview-revenue').textContent = formatMoney(data.total_revenue);
+        document.getElementById('preview-owner').textContent = formatMoney(data.owner_share);
         document.getElementById('preview-share').textContent = formatMoney(data.partner_share);
-        resultDiv.style.display = 'block';
+        document.getElementById('preview-amortization').textContent = formatMoney(data.amortization_share);
 
-        // Сохраняем месяц для фиксации
+        resultDiv.style.display = 'block';
         resultDiv.dataset.month = month;
     } catch (err) {
         loading.style.display = 'none';
         errorDiv.textContent = 'Ошибка сети: ' + err.message;
         errorDiv.style.display = 'block';
     }
-
-    document.getElementById('preview-revenue').textContent = formatMoney(data.total_revenue);
-    document.getElementById('preview-owner').textContent = formatMoney(data.owner_share);
-    document.getElementById('preview-share').textContent = formatMoney(data.partner_share);
-    document.getElementById('preview-amortization').textContent = formatMoney(data.amortization_share);
 }
 
 async function fixPayout() {
@@ -1142,6 +1189,8 @@ async function loadPayouts(token) {
             if (!p.is_paid) {
                 actionButton = `<button class="outline btn-sm" onclick="markPayoutPaid(${p.id})">Выплачено</button> `;
                 actionButton += `<button class="outline secondary btn-icon" onclick="deletePayout(${p.id})">Удалить</button>`;
+            } else {
+                actionButton = `<button class="outline btn-sm" onclick="recalculatePayout(${p.id})">Пересчитать</button>`;
             }
 
             row.innerHTML = `
@@ -1189,6 +1238,37 @@ async function markPayoutPaid(id) {
             return;
         }
 
+        loadPayouts(token);
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
+    }
+}
+
+async function recalculatePayout(id) {
+    if (!confirm('Пересчитать выплату #' + id + '? Данные будут обновлены на основе текущих оплаченных аренд.')) {
+        return;
+    }
+
+    const token = getToken();
+    try {
+        const response = await fetch(`/payouts/${id}/recalculate`, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+        });
+
+        if (response.status === 401) {
+            clearToken();
+            window.location.href = '/web/login';
+            return;
+        }
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка перерасчёта: ' + (err.error || response.status));
+            return;
+        }
+
+        // Обновляем таблицу
         loadPayouts(token);
     } catch (err) {
         alert('Ошибка сети: ' + err.message);

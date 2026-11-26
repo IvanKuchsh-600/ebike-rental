@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/breakdown"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/payout"
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/rental"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 
@@ -140,7 +141,7 @@ func (h *PartnerHandler) ListRentals(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	// 1. Загружаем все аренды
-	rentals, err := h.rentalSvc.List(ctx)
+	rentals, err := h.rentalSvc.List(ctx, "")
 	if err != nil {
 		h.handleError(c, err)
 		return

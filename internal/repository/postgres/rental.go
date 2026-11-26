@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/rental"
 	"github.com/jackc/pgx/v5"
@@ -185,6 +186,23 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 	}
 
 	return &updated, nil
+}
+
+// ListByPeriod — аренды, начавшиеся в указанном периоде [start, end).
+func (r *RentalRepository) ListByPeriod(ctx context.Context, start, end time.Time) ([]rental.Rental, error) {
+	query := `
+		SELECT
+			id, bike_id, renter_name, renter_phone,
+			started_at, planned_end_at, returned_at,
+			total_amount, is_paid,
+			prepayment, deposit, deposit_returned, is_deposit_returned,
+			comment, created_at
+		FROM rentals
+		WHERE started_at >= $1 AND started_at < $2
+		ORDER BY started_at DESC
+	`
+
+	return r.queryList(ctx, query, start, end)
 }
 
 // MarkReturned — отметить аренду как возвращённую.

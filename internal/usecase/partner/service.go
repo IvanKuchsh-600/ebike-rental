@@ -81,14 +81,37 @@ func (s *Service) Dashboard(ctx context.Context, month string) (*DashboardResult
 	}
 
 	// 4. Выручка за месяц
-	revenue, err := s.revenueProvider.CalculateRevenue(ctx, periodStart, periodEnd)
-	if err != nil {
-		s.logger.Error("failed to calculate revenue", "month", month, "error", err)
-		return nil, fmt.Errorf("calculate revenue: %w", err)
+	//revenue, err := s.revenueProvider.CalculateRevenue(ctx, periodStart, periodEnd)
+	//if err != nil {
+	//	s.logger.Error("failed to calculate revenue", "month", month, "error", err)
+	//	return nil, fmt.Errorf("calculate revenue: %w", err)
+	//}
+
+	// 4. Выручка за месяц
+	var revenue, partnerShare, amortizationShare int64
+
+	// Сначала пробуем взять зафиксированную выплату
+	fixedPayout, err := s.revenueProvider.GetPayoutByPeriod(ctx, periodStart, periodEnd)
+	if err == nil {
+		// Нашли зафиксированную выплату — берем цифры из неё
+		revenue = fixedPayout.TotalRevenue
+		partnerShare = fixedPayout.PartnerShare
+		amortizationShare = fixedPayout.AmortizationShare
+		s.logger.Info("using fixed payout for dashboard", "month", monthKey)
+	} else {
+		// Не нашли — считаем по арендам (старая логика)
+		revenue, err = s.revenueProvider.CalculateRevenue(ctx, periodStart, periodEnd)
+		if err != nil {
+			s.logger.Error("failed to calculate revenue", "month", month, "error", err)
+			return nil, fmt.Errorf("calculate revenue: %w", err)
+		}
+		partnerShare = int64(float64(revenue) * s.partnerShare)
+		amortizationShare = int64(float64(revenue) * s.amortizationShare)
+		s.logger.Info("calculated revenue from rentals", "month", monthKey)
 	}
 
-	partnerShare := int64(float64(revenue) * s.partnerShare)
-	amortizationShare := int64(float64(revenue) * s.amortizationShare)
+	//partnerShare := int64(float64(revenue) * s.partnerShare)
+	//amortizationShare := int64(float64(revenue) * s.amortizationShare)
 
 	s.logger.Info("partner dashboard calculated",
 		"month", monthKey,

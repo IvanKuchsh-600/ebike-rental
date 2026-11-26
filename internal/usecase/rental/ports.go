@@ -17,6 +17,7 @@ type Repository interface {
 	ListActive(ctx context.Context) ([]rental.Rental, error)
 	ListByBike(ctx context.Context, bikeID int64) ([]rental.Rental, error)
 	Update(ctx context.Context, r *rental.Rental) (*rental.Rental, error)
+	ListByPeriod(ctx context.Context, start, end time.Time) ([]rental.Rental, error)
 	MarkReturned(ctx context.Context, id int64) error
 	MarkPaid(ctx context.Context, id int64) error
 	Delete(ctx context.Context, id int64) error
@@ -52,7 +53,7 @@ type Transactor interface {
 type Usecase interface {
 	Create(ctx context.Context, input CreateInput) (*rental.Rental, error)
 	GetByID(ctx context.Context, id int64) (*rental.Rental, error)
-	List(ctx context.Context) ([]rental.Rental, error)
+	List(ctx context.Context, month string) ([]rental.Rental, error)
 	ListActive(ctx context.Context) ([]rental.Rental, error)
 	ListByBike(ctx context.Context, bikeID int64) ([]rental.Rental, error)
 	Update(ctx context.Context, id int64, input UpdateInput) (*rental.Rental, error)

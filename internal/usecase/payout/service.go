@@ -225,3 +225,26 @@ func (s *Service) calculateShares(revenue int64) (owner, partner, amortization i
 	amortization = revenue - owner - partner // остаток
 	return
 }
+
+func (s *Service) Recalculate(ctx context.Context, id int64) (*payout.Payout, error) {
+	// 1. Достаем существующую выплату
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Пересчитываем выручку за её период
+	revenue, err := s.repo.CalculateRevenue(ctx, existing.PeriodStart, existing.PeriodEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Обновляем доли (используй те же проценты, что и при создании)
+	existing.TotalRevenue = revenue
+	existing.OwnerShare = int64(float64(revenue) * 0.40) // или откуда берешь проценты
+	existing.PartnerShare = int64(float64(revenue) * 0.40)
+	existing.AmortizationShare = int64(float64(revenue) * 0.20)
+
+	// 4. Сохраняем
+	return s.repo.Update(ctx, existing)
+}

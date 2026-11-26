@@ -144,6 +144,7 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 			payouts.POST("", h.Payout.Create)
 			payouts.GET("", h.Payout.List)
 			payouts.GET("/:id", h.Payout.GetByID)
+			payouts.POST("/:id/recalculate", h.Payout.Recalculate)
 			payouts.POST("/:id/pay", h.Payout.MarkPaid)
 			payouts.DELETE("/:id", h.Payout.Delete)
 		}

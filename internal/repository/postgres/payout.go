@@ -93,6 +93,32 @@ func (r *PayoutRepository) GetByID(ctx context.Context, id int64) (*payout.Payou
 	return &p, nil
 }
 
+// Update — обновляет суммы в существующей выплате.
+func (r *PayoutRepository) Update(ctx context.Context, p *payout.Payout) (*payout.Payout, error) {
+	query := `
+		UPDATE payouts
+		SET total_revenue = $1, owner_share = $2, partner_share = $3, amortization_share = $4
+		WHERE id = $5
+		RETURNING id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
+	`
+	var updated payout.Payout
+	err := r.db.QueryRow(ctx, query,
+		p.TotalRevenue, p.OwnerShare, p.PartnerShare, p.AmortizationShare, p.ID,
+	).Scan(
+		&updated.ID, &updated.PeriodStart, &updated.PeriodEnd, &updated.TotalRevenue,
+		&updated.OwnerShare, &updated.PartnerShare, &updated.AmortizationShare,
+		&updated.IsPaid, &updated.PaidAt, &updated.Comment, &updated.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, payout.ErrNotFound
+		}
+		r.logger.Error("failed to update payout", "id", p.ID, "error", err)
+		return nil, fmt.Errorf("update payout: %w", err)
+	}
+	return &updated, nil
+}
+
 func (r *PayoutRepository) List(ctx context.Context) ([]payout.Payout, error) {
 	query := `
 		SELECT id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
@@ -241,4 +267,25 @@ func (r *PayoutRepository) exists(ctx context.Context, id int64) (bool, error) {
 		return false, fmt.Errorf("check payout exists: %w", err)
 	}
 	return exists, nil
+}
+
+func (r *PayoutRepository) GetPayoutByPeriod(ctx context.Context, periodStart, periodEnd time.Time) (*payout.Payout, error) {
+	query := `
+		SELECT id, period_start, period_end, total_revenue, owner_share, partner_share, amortization_share, is_paid, paid_at, comment, created_at
+		FROM payouts
+		WHERE period_start = $1 AND period_end = $2
+	`
+	var p payout.Payout
+	err := r.db.QueryRow(ctx, query, periodStart, periodEnd).Scan(
+		&p.ID, &p.PeriodStart, &p.PeriodEnd, &p.TotalRevenue,
+		&p.OwnerShare, &p.PartnerShare, &p.AmortizationShare,
+		&p.IsPaid, &p.PaidAt, &p.Comment, &p.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, payout.ErrNotFound
+		}
+		return nil, fmt.Errorf("get payout by period: %w", err)
+	}
+	return &p, nil
 }

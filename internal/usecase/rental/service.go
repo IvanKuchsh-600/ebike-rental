@@ -112,13 +112,22 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*rental.Rental, error)
 	return r, nil
 }
 
-func (s *Service) List(ctx context.Context) ([]rental.Rental, error) {
-	items, err := s.rentalRepo.List(ctx)
-	if err != nil {
-		s.logger.Error("failed to list rentals", "error", err)
-		return nil, fmt.Errorf("list rentals: %w", err)
+func (s *Service) List(ctx context.Context, month string) ([]rental.Rental, error) {
+	if month == "" {
+		// Если месяц не задан — возвращаем все (как раньше)
+		return s.rentalRepo.List(ctx)
 	}
-	return items, nil
+
+	// Парсим "YYYY-MM" в начало и конец месяца
+	t, err := time.Parse("2006-01", month)
+	if err != nil {
+		return nil, fmt.Errorf("invalid month format: %w", err)
+	}
+
+	periodStart := time.Date(t.Year(), t.Month(), 1, 0, 0, 0, 0, time.UTC)
+	periodEnd := periodStart.AddDate(0, 1, 0)
+
+	return s.rentalRepo.ListByPeriod(ctx, periodStart, periodEnd)
 }
 
 func (s *Service) ListActive(ctx context.Context) ([]rental.Rental, error) {
