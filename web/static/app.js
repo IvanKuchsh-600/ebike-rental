@@ -226,14 +226,25 @@ async function loadBikes(token, showActions = false, isDashboard = false) {
             }
 
             // 2. ГЕНЕРИРУЕМ ДЕЙСТВИЯ
+            // Кнопки действий — только если showActions = true
             let actionsCell = '';
             if (showActions) {
+                // Собираем кнопки
+                let buttons = `
+                    <button class="outline btn-sm" onclick="showBikeDetails(${bike.id}, '${escapeHtml(bike.serial_number)}')">Подробнее</button>
+                    <button class="outline btn-sm" onclick="openEditBikeForm(${bike.id})">Изменить</button>
+                `;
+
+                // Показываем кнопку "Удалить" ТОЛЬКО если у велосипеда НЕТ аренд
+                // (Мы проверяем флаг has_rentals, который придет с бэкенда)
+                if (!bike.has_rentals) {
+                    buttons += `<button class="outline secondary btn-sm" onclick="deleteBike(${bike.id})">Удалить</button>`;
+                }
+
                 actionsCell = `
                     <td>
                         <div class="actions-cell">
-                            <button class="outline btn-sm" onclick="showBikeDetails(${bike.id}, '${escapeHtml(bike.serial_number)}')">Подробнее</button>
-                            <button class="outline btn-sm" onclick="openEditBikeForm(${bike.id})">Изменить</button>
-                            <button class="outline secondary btn-icon" onclick="deleteBike(${bike.id})" title="Удалить">🗑</button>
+                            ${buttons}
                         </div>
                     </td>
                 `;
@@ -722,7 +733,28 @@ async function loadRentals(token) {
             // 5. Кнопки действий (Редактировать и Удалить)
             let actionButton = '';
             if (!rental.returned_at) {
-                actionButton = `<button class="outline btn-sm" onclick="openEditRentalForm(${rental.id})">Редактировать</button> `;
+                actionButton = `<button class="outline btn-sm" onclick="openEditRentalForm(${rental.id})">Ред.</button> `;
+
+                actionButton += `
+    <select class="btn-sm" 
+            onchange="extendRental(${rental.id}, this.value)" 
+            style="width: auto; display: inline-block; margin: 0 0.2rem; 
+                   padding: 0.25rem 1.5rem 0.25rem 0.6rem; 
+                   font-size: 0.85rem; line-height: 1.2; 
+                   border: 1px solid #007bff; color: #007bff; 
+                   background-color: transparent; border-radius: 4px; cursor: pointer;
+                   appearance: none; -webkit-appearance: none; -moz-appearance: none;
+                   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23888%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+                   background-repeat: no-repeat;
+                   background-position: right 6px center;
+                   background-size: 8px auto;
+                   vertical-align: middle;">
+        <option value="" style="color: #333;">Продлить...</option>
+        <option value="week" style="color: #333;">+ Неделя</option>
+        <option value="month" style="color: #333;">+ Месяц</option>
+    </select>
+`;
+
                 if (!rental.is_paid) {
                     actionButton += `<button class="outline secondary btn-icon" onclick="deleteRental(${rental.id})">Удалить</button>`;
                 }
@@ -735,6 +767,7 @@ async function loadRentals(token) {
                 <td>${rental.renter_name}<br><small>${rental.renter_phone}</small></td>
                 <td><small>${formatDate(rental.started_at)}</small></td>
                 <td><small>${formatDate(rental.planned_end_at)}</small></td>
+                <td><small>${rental.paid_at ? formatDate(rental.paid_at) : '—'}</small></td>
                 <td>${formatMoney(rental.total_amount)}</td>
                 <td>${prepaymentCell}</td>
                 <td>${depositCell}</td>
@@ -749,6 +782,36 @@ async function loadRentals(token) {
         errorDiv.textContent = 'Ошибка: ' + err.message;
         errorDiv.style.display = 'block';
         console.error('Failed to load rentals:', err);
+    }
+}
+
+async function extendRental(id, duration) {
+    if (!duration) return;
+
+    if (!confirm(`Продлить аренду #${id} на ${duration === 'week' ? 'неделю' : 'месяц'}?`)) {
+        return;
+    }
+
+    const token = getToken();
+    try {
+        const response = await fetch(`/rentals/${id}/extend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token,
+            },
+            body: JSON.stringify({ duration: duration }),
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            alert('Ошибка продления: ' + (err.error || response.status));
+            return;
+        }
+
+        loadRentals(token); // Обновляем таблицу
+    } catch (err) {
+        alert('Ошибка сети: ' + err.message);
     }
 }
 
@@ -1996,7 +2059,7 @@ async function openCreateBreakdownForm() {
     // Загружаем ВСЕ велосипеды (не только свободные)
     await fillBikesDropdown(document.getElementById('breakdown-form-bike'));
 
-    document.getElementById('breakdown-form-container').style.display = 'block';
+    document.getElementById('breakdown-form-container').style.display = 'flex';
 }
 
 async function openEditBreakdownForm(id) {
@@ -2033,8 +2096,7 @@ async function openEditBreakdownForm(id) {
 
         // Показываем
         const container = document.getElementById('breakdown-form-container');
-        container.style.display = 'block';
-        container.scrollIntoView({ behavior: 'smooth' });
+        container.style.display = 'flex';
     } catch (err) {
         alert('Ошибка: ' + err.message);
     }
@@ -2156,7 +2218,8 @@ async function openCreateRentalForm() {
         document.getElementById('rental-form-serial-preview').value = selected.dataset.serial || '';
     };
 
-    document.getElementById('rental-form-container').style.display = 'block';
+    const container = document.getElementById('rental-form-container');
+    container.style.display = 'flex';
 }
 
 async function openEditRentalForm(id) {
@@ -2201,6 +2264,7 @@ async function openEditRentalForm(id) {
         document.getElementById('rental-form-prepayment').value = r.prepayment || '';
         document.getElementById('rental-form-deposit').value = r.deposit || '';
         document.getElementById('rental-form-comment').value = r.comment || '';
+        document.getElementById('rental-form-paid-at').value = toDatetimeLocal(r.paid_at);
 
         // Блокируем неизменяемые поля
         document.getElementById('rental-form-started').disabled = true;
@@ -2213,15 +2277,16 @@ async function openEditRentalForm(id) {
         document.getElementById('rental-form-submit').textContent = 'Сохранить изменения';
 
         const container = document.getElementById('rental-form-container');
-        container.style.display = 'block';
-        container.scrollIntoView({ behavior: 'smooth' });
+        container.style.display = 'flex';
     } catch (err) {
         alert('Ошибка: ' + err.message);
     }
 }
 
 function closeRentalForm() {
-    document.getElementById('rental-form-container').style.display = 'none';
+    const container = document.getElementById('rental-form-container');
+    container.style.display = 'none';
+    // classList.remove('modal-open') больше не нужен
     document.getElementById('rental-form').reset();
     document.getElementById('rental-form-id').value = '';
 }
@@ -2248,6 +2313,7 @@ async function handleRentalFormSubmit(event) {
             prepayment: form.prepayment.value ? parseInt(form.prepayment.value, 10) : null,
             deposit: form.deposit.value ? parseInt(form.deposit.value, 10) : null,
             comment: form.comment.value.trim() || null,
+            paid_at: form.paid_at.value ? new Date(form.paid_at.value).toISOString() : null, // <-- ДОБАВЛЕНО
         };
 
         if (form.started_at.value) {
@@ -2266,6 +2332,7 @@ async function handleRentalFormSubmit(event) {
         prepayment: form.prepayment.value ? parseInt(form.prepayment.value, 10) : null,
         deposit: form.deposit.value ? parseInt(form.deposit.value, 10) : null,
         comment: form.comment.value.trim() || null,
+        paid_at: form.paid_at.value ? new Date(form.paid_at.value).toISOString() : null, // <-- ДОБАВИТЬ ЭТУ СТРОКУ
     };
 
     return sendRentalRequest(`/rentals/${id}`, 'PUT', body, token, errorDiv);
@@ -2521,8 +2588,17 @@ async function removeBikePhoto(id) {
     }
 }
 
-// ============ Mobile nav toggle ============
 
+// Закрытие модалки по клику на фон
+document.addEventListener('click', (e) => {
+    const container = document.getElementById('rental-form-container');
+    if (container && container.classList.contains('modal-overlay') && e.target === container) {
+        closeRentalForm();
+    }
+});
+
+
+// ============ Mobile nav toggle ============
 function toggleNav() {
     const menu = document.getElementById('nav-menu');
     if (!menu) return;

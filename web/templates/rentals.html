@@ -4,83 +4,91 @@
     <button class="btn-action" onclick="openCreateRentalForm()">Сдать велосипед</button>
 </div>
 
-<!-- Форма (создание / редактирование) -->
-<article id="rental-form-container" style="display: none; margin-bottom: 2rem;">
-    <header>
-        <h3 id="rental-form-title">Новая аренда</h3>
-    </header>
+<!-- Модальное окно (фон) -->
+<div id="rental-form-container" class="modal-overlay" style="display: none;">
+    <!-- Сама карточка -->
+    <article class="modal-content">
+        <header>
+            <h3 id="rental-form-title">Новая аренда</h3>
+        </header>
 
-    <form id="rental-form" onsubmit="handleRentalFormSubmit(event)">
-        <input type="hidden" id="rental-form-id" value="">
+        <form id="rental-form" onsubmit="handleRentalFormSubmit(event)">
+            <input type="hidden" id="rental-form-id" value="">
 
-        <div class="grid">
+            <div class="grid">
+                <label>
+                    Велосипед *
+                    <select name="bike_id" id="rental-form-bike" required>
+                        <option value="">— Выберите велосипед —</option>
+                    </select>
+                </label>
+
+                <label>
+                    Серийный номер
+                    <input type="text" id="rental-form-serial-preview" disabled placeholder="—">
+                </label>
+            </div>
+
+            <div class="grid">
+                <label>
+                    Имя арендатора *
+                    <input type="text" name="renter_name" id="rental-form-name" required placeholder="Ivan">
+                </label>
+
+                <label>
+                    Телефон арендатора *
+                    <input type="tel" name="renter_phone" id="rental-form-phone" required placeholder="+79991234567">
+                </label>
+            </div>
+
+            <div class="date-fields-row">
+                <label>
+                    Начало аренды
+                    <input type="datetime-local" name="started_at" id="rental-form-started">
+                </label>
+
+                <label>
+                    Планируемый возврат *
+                    <input type="datetime-local" name="planned_end_at" id="rental-form-end" required>
+                </label>
+
+                <label>
+                    Дата платежа
+                    <input type="datetime-local" name="paid_at" id="rental-form-paid-at">
+                </label>
+            </div>
+
+            <div class="grid">
+                <label>
+                    Сумма аренды, ₽ *
+                    <input type="number" name="total_amount" id="rental-form-total" min="1" step="1" required placeholder="10000">
+                </label>
+
+                <label>
+                    Предоплата, ₽
+                    <input type="number" name="prepayment" id="rental-form-prepayment" min="0" step="1" placeholder="0">
+                </label>
+
+                <label>
+                    Залог, ₽
+                    <input type="number" name="deposit" id="rental-form-deposit" min="0" step="1" placeholder="0">
+                </label>
+            </div>
+
             <label>
-                Велосипед *
-                <select name="bike_id" id="rental-form-bike" required>
-                    <option value="">— Выберите велосипед —</option>
-                </select>
+                Комментарий
+                <textarea name="comment" id="rental-form-comment" rows="2" placeholder="Заметки"></textarea>
             </label>
 
-            <label>
-                Серийный номер
-                <input type="text" id="rental-form-serial-preview" disabled placeholder="—">
-            </label>
-        </div>
+            <div class="form-actions">
+                <button type="submit" id="rental-form-submit">Создать аренду</button>
+                <button type="button" class="secondary" onclick="closeRentalForm()">Отмена</button>
+            </div>
 
-        <div class="grid">
-            <label>
-                Имя арендатора *
-                <input type="text" name="renter_name" id="rental-form-name" required placeholder="Ivan">
-            </label>
-
-            <label>
-                Телефон арендатора *
-                <input type="tel" name="renter_phone" id="rental-form-phone" required placeholder="+79991234567">
-            </label>
-        </div>
-
-        <div class="grid">
-            <label>
-                Начало аренды
-                <input type="datetime-local" name="started_at" id="rental-form-started">
-            </label>
-
-            <label>
-                Планируемый возврат *
-                <input type="datetime-local" name="planned_end_at" id="rental-form-end" required>
-            </label>
-        </div>
-
-        <div class="grid">
-            <label>
-                Сумма аренды, ₽ *
-                <input type="number" name="total_amount" id="rental-form-total" min="1" step="1" required placeholder="10000">
-            </label>
-
-            <label>
-                Предоплата, ₽
-                <input type="number" name="prepayment" id="rental-form-prepayment" min="0" step="1" placeholder="0">
-            </label>
-
-            <label>
-                Залог, ₽
-                <input type="number" name="deposit" id="rental-form-deposit" min="0" step="1" placeholder="0">
-            </label>
-        </div>
-
-        <label>
-            Комментарий
-            <textarea name="comment" id="rental-form-comment" rows="2" placeholder="Заметки"></textarea>
-        </label>
-
-        <div class="form-actions">
-            <button type="submit" id="rental-form-submit">Создать аренду</button>
-            <button type="button" class="secondary" onclick="closeRentalForm()">Отмена</button>
-        </div>
-
-        <div id="rental-form-error" style="color: red; margin-top: 1rem; display: none;"></div>
-    </form>
-</article>
+            <div id="rental-form-error" style="color: red; margin-top: 1rem; display: none;"></div>
+        </form>
+    </article>
+</div>
 
 <!-- Фильтр по месяцу -->
 <div style="display: flex; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem; flex-wrap: wrap;">
@@ -91,7 +99,6 @@
     <button class="btn-action" onclick="loadRentals(getToken(), true)" style="margin-bottom: 0; height: 42px;">
         Применить
     </button>
-</div>
 </div>
 
 <!-- Таблица аренд -->
@@ -106,6 +113,7 @@
             <th>Арендатор</th>
             <th>Начало</th>
             <th>Возврат</th>
+            <th>Дата платежа</th>
             <th>Сумма</th>
             <th>Предоплата</th>
             <th>Залог</th>
@@ -125,4 +133,4 @@
 <script>
     document.addEventListener('DOMContentLoaded', loadRentalsPage);
 </script>
-{{end}}
+{{end}}я

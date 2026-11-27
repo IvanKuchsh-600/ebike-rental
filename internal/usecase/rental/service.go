@@ -442,3 +442,40 @@ func (s *Service) CancelReturn(ctx context.Context, id int64) (*rental.Rental, e
 	s.logger.Info("rental return cancelled", "id", id)
 	return result, nil
 }
+
+func (s *Service) Extend(ctx context.Context, id int64, duration string) (*rental.Rental, error) {
+	// 1. Получаем аренду
+	r, err := s.rentalRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Проверяем, что она не возвращена
+	if r.ReturnedAt != nil {
+		return nil, fmt.Errorf("cannot extend returned rental")
+	}
+
+	// 3. Вычисляем новую дату
+	var newEnd time.Time
+	switch duration {
+	case "week":
+		newEnd = r.PlannedEndAt.AddDate(0, 0, 7)
+	case "month":
+		newEnd = r.PlannedEndAt.AddDate(0, 1, 0)
+	default:
+		return nil, fmt.Errorf("invalid duration")
+	}
+
+	// 4. Обновляем в БД (нужен метод в репозитории UpdatePlannedEnd)
+	err = s.rentalRepo.UpdatePlannedEnd(ctx, id, newEnd)
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Возвращаем обновленную аренду
+	return s.rentalRepo.GetByID(ctx, id)
+}
+
+func (s *Service) GetBikeIDsWithRentals(ctx context.Context) ([]int64, error) {
+	return s.rentalRepo.GetBikeIDsWithRentals(ctx)
+}

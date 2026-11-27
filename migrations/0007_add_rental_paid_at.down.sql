@@ -1,0 +1,1 @@
+ALTER TABLE rentals DROP COLUMN paid_at;

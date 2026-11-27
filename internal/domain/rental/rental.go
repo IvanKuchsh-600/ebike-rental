@@ -11,6 +11,7 @@ type Rental struct {
 	StartedAt    time.Time
 	PlannedEndAt time.Time
 	ReturnedAt   *time.Time
+	PaidAt       *time.Time
 
 	TotalAmount int64
 	IsPaid      bool

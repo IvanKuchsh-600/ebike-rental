@@ -89,7 +89,7 @@ func run() error {
 	authSvc := authusecase.NewService(userRepo, tokenGen, logger)
 
 	// 6. Handlers
-	bikeHandler := handlers.NewBikeHandler(bikeSvc)
+	bikeHandler := handlers.NewBikeHandler(bikeSvc, rentalSvc)
 	breakdownHandler := handlers.NewBreakdownHandler(breakdownSvc)
 	rentalHandler := handlers.NewRentalHandler(rentalSvc)
 	payoutHandler := handlers.NewPayoutHandler(payoutSvc)

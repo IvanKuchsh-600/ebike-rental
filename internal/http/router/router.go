@@ -134,6 +134,8 @@ func New(db *pgxpool.Pool, h *Handlers, cfg Config) *gin.Engine {
 
 			rentals.PATCH("/:id/payment", h.Rental.ChangePaymentStatus)
 			rentals.PATCH("/:id/deposit", h.Rental.ReturnDeposit)
+
+			rentals.POST("/:id/extend", h.Rental.Extend)
 		}
 
 		// Payouts

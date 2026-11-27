@@ -15,6 +15,7 @@ type CreateRentalRequest struct {
 	RenterPhone  string     `json:"renter_phone" binding:"required"`
 	StartedAt    *time.Time `json:"started_at"`
 	PlannedEndAt time.Time  `json:"planned_end_at" binding:"required"`
+	PaidAt       *time.Time `json:"paid_at"`
 	TotalAmount  int64      `json:"total_amount" binding:"required"`
 	Prepayment   *int64     `json:"prepayment"`
 	Deposit      *int64     `json:"deposit"`
@@ -42,6 +43,7 @@ type RentalResponse struct {
 	StartedAt    time.Time  `json:"started_at"`
 	PlannedEndAt time.Time  `json:"planned_end_at"`
 	ReturnedAt   *time.Time `json:"returned_at"`
+	PaidAt       *time.Time `json:"paid_at"`
 
 	TotalAmount int64 `json:"total_amount"`
 	IsPaid      bool  `json:"is_paid"`
@@ -66,6 +68,7 @@ func toRentalResponse(r *rental.Rental) RentalResponse {
 		StartedAt:         r.StartedAt,
 		PlannedEndAt:      r.PlannedEndAt,
 		ReturnedAt:        r.ReturnedAt,
+		PaidAt:            r.PaidAt,
 		TotalAmount:       r.TotalAmount,
 		IsPaid:            r.IsPaid,
 		Prepayment:        r.Prepayment,
@@ -117,4 +120,8 @@ type ChangePaymentStatusRequest struct {
 
 type ReturnDepositRequest struct {
 	Returned bool `json:"returned"`
+}
+
+type ExtendRentalRequest struct {
+	Duration string `json:"duration" binding:"required,oneof=week month"` // "week" или "month"
 }

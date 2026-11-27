@@ -30,30 +30,24 @@ func (r *RentalRepository) Create(ctx context.Context, rr *rental.Rental) (*rent
 	query := `
 		INSERT INTO rentals (
 			bike_id, renter_name, renter_phone,
-			started_at, planned_end_at,
+			started_at, planned_end_at, paid_at,
 			total_amount, is_paid,
-			prepayment, deposit,
-			comment
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING
-			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
-			total_amount, is_paid,
-			prepayment, deposit, deposit_returned, is_deposit_returned,
-			comment, created_at
+			prepayment, deposit, comment) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id, bike_id, renter_name, renter_phone, started_at, planned_end_at, returned_at, paid_at, total_amount, is_paid, prepayment, deposit, 
+		deposit_returned, is_deposit_returned, comment, created_at	
 	`
 
 	var created rental.Rental
 	err := r.db.QueryRow(ctx, query,
 		rr.BikeID, rr.RenterName, rr.RenterPhone,
-		rr.StartedAt, rr.PlannedEndAt,
+		rr.StartedAt, rr.PlannedEndAt, rr.PaidAt, // <-- ДОБАВЛЕНО
 		rr.TotalAmount, rr.IsPaid,
 		rr.Prepayment, rr.Deposit,
 		rr.Comment,
 	).Scan(
 		&created.ID, &created.BikeID, &created.RenterName, &created.RenterPhone,
-		&created.StartedAt, &created.PlannedEndAt, &created.ReturnedAt,
+		&created.StartedAt, &created.PlannedEndAt, &created.ReturnedAt, &created.PaidAt,
 		&created.TotalAmount, &created.IsPaid,
 		&created.Prepayment, &created.Deposit, &created.DepositReturned, &created.IsDepositReturned,
 		&created.Comment, &created.CreatedAt,
@@ -72,7 +66,7 @@ func (r *RentalRepository) GetByID(ctx context.Context, id int64) (*rental.Renta
 	query := `
 		SELECT
 			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
+			started_at, planned_end_at, returned_at, paid_at,
 			total_amount, is_paid,
 			prepayment, deposit, deposit_returned, is_deposit_returned,
 			comment, created_at
@@ -83,7 +77,7 @@ func (r *RentalRepository) GetByID(ctx context.Context, id int64) (*rental.Renta
 	var rr rental.Rental
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&rr.ID, &rr.BikeID, &rr.RenterName, &rr.RenterPhone,
-		&rr.StartedAt, &rr.PlannedEndAt, &rr.ReturnedAt,
+		&rr.StartedAt, &rr.PlannedEndAt, &rr.ReturnedAt, &rr.PaidAt,
 		&rr.TotalAmount, &rr.IsPaid,
 		&rr.Prepayment, &rr.Deposit, &rr.DepositReturned, &rr.IsDepositReturned,
 		&rr.Comment, &rr.CreatedAt,
@@ -103,7 +97,7 @@ func (r *RentalRepository) List(ctx context.Context) ([]rental.Rental, error) {
 	query := `
 		SELECT
 			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
+			started_at, planned_end_at, returned_at, paid_at,
 			total_amount, is_paid,
 			prepayment, deposit, deposit_returned, is_deposit_returned,
 			comment, created_at
@@ -118,7 +112,7 @@ func (r *RentalRepository) ListActive(ctx context.Context) ([]rental.Rental, err
 	query := `
 		SELECT
 			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
+			started_at, planned_end_at, returned_at, paid_at,
 			total_amount, is_paid,
 			prepayment, deposit, deposit_returned, is_deposit_returned,
 			comment, created_at
@@ -134,7 +128,7 @@ func (r *RentalRepository) ListByBike(ctx context.Context, bikeID int64) ([]rent
 	query := `
 		SELECT
 			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
+			started_at, planned_end_at, returned_at, paid_at,
 			total_amount, is_paid,
 			prepayment, deposit, deposit_returned, is_deposit_returned,
 			comment, created_at
@@ -144,6 +138,23 @@ func (r *RentalRepository) ListByBike(ctx context.Context, bikeID int64) ([]rent
 	`
 
 	return r.queryList(ctx, query, bikeID)
+}
+
+// ListByPeriod — аренды, начавшиеся в указанном периоде [start, end).
+func (r *RentalRepository) ListByPeriod(ctx context.Context, start, end time.Time) ([]rental.Rental, error) {
+	query := `
+		SELECT
+			id, bike_id, renter_name, renter_phone,
+			started_at, planned_end_at, returned_at, paid_at,
+			total_amount, is_paid,
+			prepayment, deposit, deposit_returned, is_deposit_returned,
+			comment, created_at
+		FROM rentals
+		WHERE started_at >= $1 AND started_at < $2
+		ORDER BY started_at DESC
+	`
+
+	return r.queryList(ctx, query, start, end)
 }
 
 // ============ Update ============
@@ -158,7 +169,7 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 		WHERE id = $8
 		RETURNING
 			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
+			started_at, planned_end_at, returned_at, paid_at,
 			total_amount, is_paid,
 			prepayment, deposit, deposit_returned, is_deposit_returned,
 			comment, created_at
@@ -172,7 +183,7 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 		rr.Comment, rr.ID,
 	).Scan(
 		&updated.ID, &updated.BikeID, &updated.RenterName, &updated.RenterPhone,
-		&updated.StartedAt, &updated.PlannedEndAt, &updated.ReturnedAt,
+		&updated.StartedAt, &updated.PlannedEndAt, &updated.ReturnedAt, &updated.PaidAt,
 		&updated.TotalAmount, &updated.IsPaid,
 		&updated.Prepayment, &updated.Deposit, &updated.DepositReturned, &updated.IsDepositReturned,
 		&updated.Comment, &updated.CreatedAt,
@@ -188,25 +199,7 @@ func (r *RentalRepository) Update(ctx context.Context, rr *rental.Rental) (*rent
 	return &updated, nil
 }
 
-// ListByPeriod — аренды, начавшиеся в указанном периоде [start, end).
-func (r *RentalRepository) ListByPeriod(ctx context.Context, start, end time.Time) ([]rental.Rental, error) {
-	query := `
-		SELECT
-			id, bike_id, renter_name, renter_phone,
-			started_at, planned_end_at, returned_at,
-			total_amount, is_paid,
-			prepayment, deposit, deposit_returned, is_deposit_returned,
-			comment, created_at
-		FROM rentals
-		WHERE started_at >= $1 AND started_at < $2
-		ORDER BY started_at DESC
-	`
-
-	return r.queryList(ctx, query, start, end)
-}
-
 // MarkReturned — отметить аренду как возвращённую.
-// Устанавливает returned_at = NOW(). Идемпотентен: повторный вызов — no-op.
 func (r *RentalRepository) MarkReturned(ctx context.Context, id int64) error {
 	query := `
 		UPDATE rentals
@@ -228,18 +221,17 @@ func (r *RentalRepository) MarkReturned(ctx context.Context, id int64) error {
 		if !exists {
 			return rental.ErrNotFound
 		}
-		// Уже возвращена — не ошибка.
 		return nil
 	}
 
 	return nil
 }
 
-// MarkPaid — отметить аренду как оплаченную.
+// MarkPaid — отметить аренду как оплаченную (ставим paid_at = NOW()).
 func (r *RentalRepository) MarkPaid(ctx context.Context, id int64) error {
 	query := `
 		UPDATE rentals
-		SET is_paid = TRUE
+		SET is_paid = TRUE, paid_at = NOW()
 		WHERE id = $1
 	`
 
@@ -287,7 +279,7 @@ func (r *RentalRepository) queryList(ctx context.Context, query string, args ...
 		var rr rental.Rental
 		if err := rows.Scan(
 			&rr.ID, &rr.BikeID, &rr.RenterName, &rr.RenterPhone,
-			&rr.StartedAt, &rr.PlannedEndAt, &rr.ReturnedAt,
+			&rr.StartedAt, &rr.PlannedEndAt, &rr.ReturnedAt, &rr.PaidAt,
 			&rr.TotalAmount, &rr.IsPaid,
 			&rr.Prepayment, &rr.Deposit, &rr.DepositReturned, &rr.IsDepositReturned,
 			&rr.Comment, &rr.CreatedAt,
@@ -316,8 +308,14 @@ func (r *RentalRepository) exists(ctx context.Context, id int64) (bool, error) {
 
 // SetPaid — устанавливает статус оплаты (true/false).
 func (r *RentalRepository) SetPaid(ctx context.Context, id int64, isPaid bool) error {
-	query := `UPDATE rentals SET is_paid = $1 WHERE id = $2`
-	result, err := r.db.Exec(ctx, query, isPaid, id)
+	var query string
+	if isPaid {
+		query = `UPDATE rentals SET is_paid = TRUE, paid_at = NOW() WHERE id = $1`
+	} else {
+		query = `UPDATE rentals SET is_paid = FALSE, paid_at = NULL WHERE id = $1`
+	}
+	result, err := r.db.Exec(ctx, query, id)
+
 	if err != nil {
 		r.logger.Error("failed to set paid", "id", id, "is_paid", isPaid, "error", err)
 		return fmt.Errorf("set paid: %w", err)
@@ -329,8 +327,6 @@ func (r *RentalRepository) SetPaid(ctx context.Context, id int64, isPaid bool) e
 }
 
 // SetDepositReturned — возвращает или отменяет возврат залога.
-// Если возвращаем (true), то deposit_returned = deposit.
-// Если отменяем (false), то deposit_returned = NULL.
 func (r *RentalRepository) SetDepositReturned(ctx context.Context, id int64, returned bool) error {
 	query := `
 		UPDATE rentals 
@@ -359,4 +355,37 @@ func (r *RentalRepository) CancelReturn(ctx context.Context, id int64) error {
 		return rental.ErrNotFound
 	}
 	return nil
+}
+
+// UpdatePlannedEnd — обновляет только дату окончания аренды (для продления).
+func (r *RentalRepository) UpdatePlannedEnd(ctx context.Context, id int64, newEnd time.Time) error {
+	query := `UPDATE rentals SET planned_end_at = $1 WHERE id = $2`
+	result, err := r.db.Exec(ctx, query, newEnd, id)
+	if err != nil {
+		r.logger.Error("failed to update planned_end_at", "id", id, "error", err)
+		return fmt.Errorf("update planned end: %w", err)
+	}
+	if result.RowsAffected() == 0 {
+		return rental.ErrNotFound
+	}
+	return nil
+}
+
+func (r *RentalRepository) GetBikeIDsWithRentals(ctx context.Context) ([]int64, error) {
+	query := `SELECT DISTINCT bike_id FROM rentals`
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("get bike IDs with rentals: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }

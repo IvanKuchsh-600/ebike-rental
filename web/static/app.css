@@ -580,6 +580,23 @@ nav.app-nav button.nav-toggle:hover {
     padding: 0.75rem 0.5rem; /* Чуть уменьшили горизонтальные отступы */
 }
 
+/* Добавляем вертикальные разделители для всех таблиц */
+.table-wrapper table th,
+.table-wrapper table td {
+    border-left: 1px solid var(--pico-muted-border-color);
+}
+
+/* Убираем левую границу у первой колонки, чтобы не было двойной рамки */
+.table-wrapper table th:first-child,
+.table-wrapper table td:first-child {
+    border-left: none;
+}
+
+/* Делаем линии чуть более контрастными (опционально) */
+.table-wrapper th {
+    border-bottom: 2px solid var(--pico-muted-border-color);
+}
+
 /* На мобильных делаем шрифт в таблице чуть меньше */
 @media (max-width: 768px) {
     .status-select {
@@ -642,3 +659,90 @@ nav.app-nav button.nav-toggle:hover {
     padding: 4px;
 }
 
+/* ============ Модальное окно (универсальное) ============ */
+
+/* Фон (overlay) */
+.modal-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6) !important;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 2rem;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Сама карточка */
+.modal-content {
+    background-color: #fff !important;
+    border-radius: 8px !important;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid #ddd !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Шапка карточки */
+.modal-content > header {
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+    border-bottom: 1px solid #ddd;
+    background-color: #f8f8f8;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-content > header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+/* Внутренние отступы для формы */
+.modal-content > form {
+    padding: 1.5rem;
+}
+
+/* Сетка для дат в форме аренды */
+#rental-form .grid-dates {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem;
+}
+
+/* Жесткий фикс для полей с датами */
+.date-fields-row {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    margin-bottom: 1.5rem !important;
+}
+
+.date-fields-row > label {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.date-fields-row input {
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+@media (max-width: 550px) {
+    .date-fields-row {
+        flex-direction: column !important;
+    }
+}

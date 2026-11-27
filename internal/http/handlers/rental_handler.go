@@ -350,3 +350,37 @@ func (h *RentalHandler) CancelReturn(c *gin.Context) {
 
 	c.JSON(http.StatusOK, toRentalResponse(updated))
 }
+
+// Extend godoc
+// @Summary     Продлить аренду
+// @Tags        rentals
+// @Accept      json
+// @Produce     json
+// @Param       id path int true "ID аренды"
+// @Param       request body ExtendRentalRequest true "Период продления"
+// @Success     200 {object} RentalResponse
+// @Failure     400 {object} ErrorResponse
+// @Failure     404 {object} ErrorResponse
+// @Failure     409 {object} ErrorResponse
+// @Router      /rentals/{id}/extend [post]
+func (h *RentalHandler) Extend(c *gin.Context) {
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id"})
+		return
+	}
+
+	var req ExtendRentalRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	r, err := h.usecase.Extend(c.Request.Context(), id, req.Duration)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, toRentalResponse(r))
+}

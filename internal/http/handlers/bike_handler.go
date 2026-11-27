@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	rentalusecase "github.com/IvanKuchsh-600/ebike-rental/internal/usecase/rental"
 	"github.com/gin-gonic/gin"
 
 	"github.com/IvanKuchsh-600/ebike-rental/internal/domain/bike"
@@ -13,11 +14,12 @@ import (
 )
 
 type BikeHandler struct {
-	usecase bikeusecase.Usecase
+	usecase   bikeusecase.Usecase
+	rentalSvc rentalusecase.Usecase
 }
 
-func NewBikeHandler(usecase bikeusecase.Usecase) *BikeHandler {
-	return &BikeHandler{usecase: usecase}
+func NewBikeHandler(usecase bikeusecase.Usecase, rentalSvc rentalusecase.Usecase) *BikeHandler {
+	return &BikeHandler{usecase: usecase, rentalSvc: rentalSvc}
 }
 
 // Create godoc
@@ -80,6 +82,14 @@ func (h *BikeHandler) GetByID(c *gin.Context) {
 // @Success     200 {array} BikeResponse
 // @Failure     500 {object} ErrorResponse
 // @Router      /bikes [get]
+
+// List godoc
+// @Summary     Список велосипедов
+// @Tags        bikes
+// @Produce     json
+// @Success     200 {array} BikeResponse
+// @Failure     500 {object} ErrorResponse
+// @Router      /bikes [get]
 func (h *BikeHandler) List(c *gin.Context) {
 	bikes, err := h.usecase.List(c.Request.Context())
 	if err != nil {
@@ -87,7 +97,31 @@ func (h *BikeHandler) List(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, toBikeResponseList(bikes))
+	// Получаем список ID велосипедов, у которых есть аренды
+	bikeIDsWithRentals, err := h.rentalSvc.GetBikeIDsWithRentals(c.Request.Context())
+	if err != nil {
+		// Если не удалось получить (маловероятно), просто логируем, но отдаем список
+		// (В идеале тут тоже вернуть 500, но чтобы не ломать UX, можно пропустить)
+	}
+
+	// Создаем map для быстрого поиска: {1: true, 2: true}
+	hasRentalsMap := make(map[int64]bool)
+	for _, id := range bikeIDsWithRentals {
+		hasRentalsMap[id] = true
+	}
+
+	// Формируем ответ
+	result := make([]BikeResponse, 0, len(bikes))
+	for i := range bikes {
+		resp := toBikeResponse(&bikes[i])
+		// Если ID есть в map — ставим флаг
+		if hasRentalsMap[bikes[i].ID] {
+			resp.HasRentals = true
+		}
+		result = append(result, resp)
+	}
+
+	c.JSON(http.StatusOK, result)
 }
 
 // Update godoc

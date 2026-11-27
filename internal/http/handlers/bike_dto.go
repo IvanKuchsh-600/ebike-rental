@@ -29,10 +29,11 @@ type BikeResponse struct {
 	Model        *string `json:"model"`
 	//IsRented     bool      `json:"is_rented"`
 	//IsBroken     bool      `json:"is_broken"`
-	Status    string    `json:"status"`
-	Comment   *string   `json:"comment"`
-	PhotoURL  *string   `json:"photo_url"`
-	CreatedAt time.Time `json:"created_at"`
+	Status     string    `json:"status"`
+	Comment    *string   `json:"comment"`
+	PhotoURL   *string   `json:"photo_url"`
+	CreatedAt  time.Time `json:"created_at"`
+	HasRentals bool      `json:"has_rentals"`
 }
 
 type ChangeStatusRequest struct {

@@ -25,6 +25,9 @@ type Repository interface {
 	SetPaid(ctx context.Context, id int64, isPaid bool) error
 	SetDepositReturned(ctx context.Context, id int64, returned bool) error
 	CancelReturn(ctx context.Context, id int64) error
+	UpdatePlannedEnd(ctx context.Context, id int64, newEnd time.Time) error
+
+	GetBikeIDsWithRentals(ctx context.Context) ([]int64, error)
 }
 
 type BikeRepository interface {
@@ -64,6 +67,9 @@ type Usecase interface {
 	ChangePaymentStatus(ctx context.Context, id int64, isPaid bool) (*rental.Rental, error)
 	ReturnDeposit(ctx context.Context, id int64, returned bool) (*rental.Rental, error)
 	CancelReturn(ctx context.Context, id int64) (*rental.Rental, error)
+	Extend(ctx context.Context, id int64, duration string) (*rental.Rental, error)
+
+	GetBikeIDsWithRentals(ctx context.Context) ([]int64, error)
 }
 
 // ============ DTOs ============
